@@ -36,6 +36,7 @@ const initialNodes: Node[] = [
     data: {
       label: "Resume Parser AI",
       description: "Extract candidate information",
+      nodeType: "resume-parser",
     },
   },
 ];
@@ -156,76 +157,106 @@ const WorkflowBuilder = () => {
     setSelectedNode(latestNode ?? node);
   };
 
-  const handleUpdateNode = (
-    nodeId: string,
-    data: {
-      label: string;
-      description: string;
-    }
-  ) => {
-    setNodes((currentNodes) =>
-      currentNodes.map((node) =>
-        node.id === nodeId
-          ? {
+const handleUpdateNode = (
+  nodeId: string,
+  data: Record<string, unknown>
+) => {
+  setNodes((currentNodes) =>
+    currentNodes.map((node) =>
+      node.id === nodeId
+        ? {
             ...node,
             data: {
               ...node.data,
               ...data,
             },
           }
-          : node
-      )
-    );
+        : node
+    )
+  );
 
-    setSelectedNode((currentNode) =>
-      currentNode && currentNode.id === nodeId
-        ? {
+  setSelectedNode((currentNode) =>
+    currentNode && currentNode.id === nodeId
+      ? {
           ...currentNode,
           data: {
             ...currentNode.data,
             ...data,
           },
         }
-        : currentNode
-    );
-  };
+      : currentNode
+  );
+};
 
 
+const validateWorkflow = () => {
+  if (nodes.length === 0) {
+    return "Workflow must contain at least one node.";
+  }
 
-  const validateWorkflow = () => {
-    if (nodes.length === 0) {
-      return "Workflow must contain at least one node.";
-    }
+  const hasTrigger = nodes.some(
+    (node) => node.data.nodeType === "trigger"
+  );
 
-    const hasTrigger = nodes.some(
-      (node) => node.data.nodeType === "trigger"
-    );
+  if (!hasTrigger) {
+    return "Workflow must contain a Trigger node.";
+  }
 
-    if (!hasTrigger) {
-      return "Workflow must contain a Trigger node.";
-    }
+  if (nodes.length < 2) {
+    return "Workflow must contain at least two nodes.";
+  }
 
-    if (nodes.length < 2) {
-      return "Workflow must contain at least two nodes.";
-    }
+  if (edges.length === 0) {
+    return "Workflow must contain at least one connection.";
+  }
 
-    const connectedNodeIds = new Set<string>();
+  const nodeIds = new Set(
+    nodes.map((node) => node.id)
+  );
 
-    edges.forEach((edge) => {
-      connectedNodeIds.add(edge.source);
-      connectedNodeIds.add(edge.target);
-    });
+  const invalidEdge = edges.find(
+    (edge) =>
+      !nodeIds.has(edge.source) ||
+      !nodeIds.has(edge.target)
+  );
 
-    const disconnectedNode = nodes.find(
-      (node) => !connectedNodeIds.has(node.id)
-    );
+  if (invalidEdge) {
+    return "Workflow contains an invalid connection.";
+  }
 
-    if (disconnectedNode) {
-      return `Node "${disconnectedNode.data.label}" is not connected.`;
-    }
+  const connectedNodeIds = new Set<string>();
 
-    return null;
-  };
+  edges.forEach((edge) => {
+    connectedNodeIds.add(edge.source);
+    connectedNodeIds.add(edge.target);
+  });
+
+  const disconnectedNode = nodes.find(
+    (node) => !connectedNodeIds.has(node.id)
+  );
+
+  if (disconnectedNode) {
+    return `Node "${disconnectedNode.data.label}" is not connected.`;
+  }
+
+  const triggerNode = nodes.find(
+    (node) => node.data.nodeType === "trigger"
+  );
+
+  if (!triggerNode) {
+    return "Workflow must contain a Trigger node.";
+  }
+
+  const triggerHasOutput = edges.some(
+    (edge) => edge.source === triggerNode.id
+  );
+
+  if (!triggerHasOutput) {
+    return "Trigger must be connected to the next workflow node.";
+  }
+
+  return null;
+};
 
 
   const handlePublish = () => {
@@ -239,19 +270,20 @@ const WorkflowBuilder = () => {
     window.alert("Workflow is ready to publish.");
   };
 
-  const handleSaveDraft = () => {
-    const workflow = {
-      nodes,
-      edges,
-    };
-
-    localStorage.setItem(
-      "agentflow-workflow-draft",
-      JSON.stringify(workflow)
-    );
-
-    window.alert("Workflow draft saved.");
+ const handleSaveDraft = () => {
+  const workflow = {
+    workflowName,
+    nodes,
+    edges,
   };
+
+  localStorage.setItem(
+    "agentflow-workflow-draft",
+    JSON.stringify(workflow)
+  );
+
+  window.alert("Workflow draft saved.");
+};
 
 
 
