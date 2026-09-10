@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   addEdge,
   useEdgesState,
@@ -23,6 +23,7 @@ const initialNodes: Node[] = [
     data: {
       label: "Trigger",
       description: "Start a workflow",
+      nodeType: "trigger",
     },
   },
   {
@@ -57,6 +58,15 @@ const WorkflowBuilder = () => {
   const [selectedNode, setSelectedNode] =
     useState<Node | null>(null);
 
+  const [workflowName, setWorkflowName] =
+    useState("Untitled Workflow");
+
+  const [showNodePanel, setShowNodePanel] =
+    useState(true);
+
+  const [showConfigPanel, setShowConfigPanel] =
+    useState(true);
+
   const handleConnect = useCallback(
     (connection: Connection) => {
       setEdges((currentEdges) =>
@@ -66,27 +76,66 @@ const WorkflowBuilder = () => {
     [setEdges]
   );
 
-  const handleAddNode = (nodeType: string) => {
-    const descriptions: Record<string, string> = {
-      Trigger: "Start a workflow",
-      "Resume Parser": "Extract candidate information",
-      "AI Matching": "Match candidate with a job",
-      "Score Candidate": "Calculate candidate score",
-      Condition: "Check a condition",
-      Email: "Send an email",
-    };
+
+
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      setNodes((currentNodes) =>
+        currentNodes.filter(
+          (node) => node.id !== nodeId
+        )
+      );
+
+      setEdges((currentEdges) =>
+        currentEdges.filter(
+          (edge) =>
+            edge.source !== nodeId &&
+            edge.target !== nodeId
+        )
+      );
+
+      setSelectedNode((currentNode) =>
+        currentNode?.id === nodeId
+          ? null
+          : currentNode
+      );
+    },
+    [setNodes, setEdges]
+  );
+
+  useEffect(() => {
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          onDelete: () =>
+            handleDeleteNode(node.id),
+        },
+      }))
+    );
+  }, [handleDeleteNode, setNodes]);
+
+  const handleAddNode = (
+    type: string,
+    label: string,
+    description: string
+  ) => {
+    const nodeId = `${type}-${Date.now()}`;
 
     const newNode: Node = {
-      id: `${nodeType}-${Date.now()}`,
+      id: nodeId,
       type: "workflow",
       position: {
-        x: 100 + (nodes.length % 3) * 300,
-        y: 100 + Math.floor(nodes.length / 3) * 180,
+        x: 250,
+        y: 100 + nodes.length * 150,
       },
       data: {
-        label: nodeType,
-        description:
-          descriptions[nodeType] || "Workflow node",
+        label,
+        description,
+        nodeType: type,
+        onDelete: () =>
+          handleDeleteNode(nodeId),
       },
     };
 
@@ -96,48 +145,251 @@ const WorkflowBuilder = () => {
     ]);
   };
 
-  const handleNodeClick = (_event: React.MouseEvent, node: Node) => {
-    setSelectedNode(node);
+  const handleNodeClick = (
+    _event: React.MouseEvent,
+    node: Node
+  ) => {
+    const latestNode = nodes.find(
+      (currentNode) => currentNode.id === node.id
+    );
+
+    setSelectedNode(latestNode ?? node);
   };
+
+  const handleUpdateNode = (
+    nodeId: string,
+    data: {
+      label: string;
+      description: string;
+    }
+  ) => {
+    setNodes((currentNodes) =>
+      currentNodes.map((node) =>
+        node.id === nodeId
+          ? {
+            ...node,
+            data: {
+              ...node.data,
+              ...data,
+            },
+          }
+          : node
+      )
+    );
+
+    setSelectedNode((currentNode) =>
+      currentNode && currentNode.id === nodeId
+        ? {
+          ...currentNode,
+          data: {
+            ...currentNode.data,
+            ...data,
+          },
+        }
+        : currentNode
+    );
+  };
+
+
+
+  const validateWorkflow = () => {
+    if (nodes.length === 0) {
+      return "Workflow must contain at least one node.";
+    }
+
+    const hasTrigger = nodes.some(
+      (node) => node.data.nodeType === "trigger"
+    );
+
+    if (!hasTrigger) {
+      return "Workflow must contain a Trigger node.";
+    }
+
+    if (nodes.length < 2) {
+      return "Workflow must contain at least two nodes.";
+    }
+
+    const connectedNodeIds = new Set<string>();
+
+    edges.forEach((edge) => {
+      connectedNodeIds.add(edge.source);
+      connectedNodeIds.add(edge.target);
+    });
+
+    const disconnectedNode = nodes.find(
+      (node) => !connectedNodeIds.has(node.id)
+    );
+
+    if (disconnectedNode) {
+      return `Node "${disconnectedNode.data.label}" is not connected.`;
+    }
+
+    return null;
+  };
+
+
+  const handlePublish = () => {
+    const validationError = validateWorkflow();
+
+    if (validationError) {
+      window.alert(validationError);
+      return;
+    }
+
+    window.alert("Workflow is ready to publish.");
+  };
+
+  const handleSaveDraft = () => {
+    const workflow = {
+      nodes,
+      edges,
+    };
+
+    localStorage.setItem(
+      "agentflow-workflow-draft",
+      JSON.stringify(workflow)
+    );
+
+    window.alert("Workflow draft saved.");
+  };
+
+
+
+  useEffect(() => {
+    const savedDraft = localStorage.getItem(
+      "agentflow-workflow-draft"
+    );
+
+    if (!savedDraft) {
+      return;
+    }
+
+    try {
+      const parsedDraft = JSON.parse(savedDraft);
+
+      if (
+        !Array.isArray(parsedDraft.nodes) ||
+        !Array.isArray(parsedDraft.edges)
+      ) {
+        return;
+      }
+
+      setNodes(
+        parsedDraft.nodes.map((node: Node) => ({
+          ...node,
+          data: {
+            ...node.data,
+            onDelete: () =>
+              handleDeleteNode(node.id),
+          },
+        }))
+      );
+
+      setEdges(parsedDraft.edges);
+    } catch (error) {
+      console.error(
+        "Failed to load workflow draft:",
+        error
+      );
+    }
+  }, [handleDeleteNode, setNodes, setEdges]);
+
+
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="fw-bold mb-1">
-            Workflow Builder
-          </h2>
+    <div className="workflow-builder-header">
+  <div className="workflow-header-left">
+    <div className="workflow-breadcrumb">
+      <span>Workflows</span>
+      <span>/</span>
+      <span className="text-dark">Builder</span>
+    </div>
 
-          <p className="text-muted mb-0">
-            Build your AI recruitment automation workflow.
-          </p>
-        </div>
+    <div className="d-flex align-items-center gap-3">
+      <input
+        type="text"
+        className="workflow-title-input"
+        value={workflowName}
+        onChange={(event) =>
+          setWorkflowName(event.target.value)
+        }
+      />
 
+      <span className="workflow-status">
+        <span className="workflow-status-dot" />
+        Draft
+      </span>
+    </div>
+
+    <p className="workflow-subtitle">
+      Design, configure and automate your recruitment process.
+    </p>
+  </div>
+
+  <div className="workflow-header-actions">
+    <button
+      type="button"
+      className="workflow-action-btn"
+      onClick={handleSaveDraft}
+    >
+      <span>↓</span>
+      Save
+    </button>
+
+    <button
+      type="button"
+      className="workflow-publish-btn"
+      onClick={handlePublish}
+    >
+      Publish Workflow
+      <span>→</span>
+    </button>
+  </div>
+</div>
+
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <div className="d-flex gap-2">
           <button
             type="button"
             className="btn btn-outline-secondary"
+            onClick={() =>
+              setShowNodePanel((current) => !current)
+            }
           >
-            Save Draft
+            ☰ Nodes
           </button>
 
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn btn-outline-secondary"
+            onClick={() =>
+              setShowConfigPanel((current) => !current)
+            }
           >
-            Publish
+            ⚙ Configuration
           </button>
         </div>
       </div>
 
       <div className="row g-3">
-        <div className="col-12 col-xl-3">
-          <NodePanel
-            onAddNode={handleAddNode}
-          />
-        </div>
+        {showNodePanel && (
+          <div className="col-12 col-xl-3">
+            <NodePanel
+              onAddNode={handleAddNode}
+            />
+          </div>
+        )}
 
-        <div className="col-12 col-xl-6">
+        <div
+          className={
+            showNodePanel && showConfigPanel
+              ? "col-12 col-xl-6"
+              : showNodePanel || showConfigPanel
+                ? "col-12 col-xl-9"
+                : "col-12"
+          }
+        >
           <div className="card border-0 shadow-sm overflow-hidden">
             <WorkflowCanvas
               nodes={nodes}
@@ -150,11 +402,15 @@ const WorkflowBuilder = () => {
           </div>
         </div>
 
-        <div className="col-12 col-xl-3">
-          <NodeConfigPanel
-            node={selectedNode}
-          />
-        </div>
+        {showConfigPanel && (
+          <div className="col-12 col-xl-3">
+            <NodeConfigPanel
+              key={selectedNode?.id ?? "no-node"}
+              node={selectedNode}
+              onUpdateNode={handleUpdateNode}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,60 +1,214 @@
+import { useMemo, useState } from "react";
+
 type NodePanelProps = {
-  onAddNode: (nodeType: string) => void;
+  onAddNode: (
+    type: string,
+    label: string,
+    description: string
+  ) => void;
 };
 
-const NodePanel = ({ onAddNode }: NodePanelProps) => {
-  const nodeTypes = [
+type WorkflowNodeOption = {
+  type: string;
+  label: string;
+  description: string;
+  category: string;
+  icon: string;
+};
+
+const NodePanel = ({
+  onAddNode,
+}: NodePanelProps) => {
+  const [search, setSearch] = useState("");
+
+  const nodes: WorkflowNodeOption[] = [
     {
-      name: "Trigger",
-      description: "Start a workflow",
+      type: "trigger",
+      label: "Trigger",
+      description: "Start the workflow",
+      category: "Triggers",
+      icon: "⚡",
     },
     {
-      name: "Resume Parser",
-      description: "Extract resume information",
+      type: "resume-parser",
+      label: "Resume Parser",
+      description: "Extract candidate information",
+      category: "AI Agents",
+      icon: "✦",
     },
     {
-      name: "AI Matching",
-      description: "Match candidate with a job",
+      type: "job-matching",
+      label: "Job Matching",
+      description: "Match candidate with job",
+      category: "AI Agents",
+      icon: "⌁",
     },
     {
-      name: "Score Candidate",
+      type: "score",
+      label: "Candidate Score",
       description: "Calculate candidate score",
+      category: "AI Agents",
+      icon: "◈",
     },
     {
-      name: "Condition",
-      description: "Create a workflow condition",
+      type: "condition",
+      label: "Condition",
+      description: "Check a condition",
+      category: "Logic",
+      icon: "◇",
     },
     {
-      name: "Email",
+      type: "shortlist",
+      label: "Shortlist",
+      description: "Move qualified candidate forward",
+      category: "Actions",
+      icon: "✓",
+    },
+    {
+      type: "reject",
+      label: "Reject",
+      description: "Reject candidate from process",
+      category: "Actions",
+      icon: "×",
+    },
+    {
+      type: "email",
+      label: "Send Email",
       description: "Send an email",
+      category: "Communication",
+      icon: "✉",
     },
   ];
 
+  const filteredNodes = useMemo(() => {
+    const query = search.toLowerCase().trim();
+
+    if (!query) {
+      return nodes;
+    }
+
+    return nodes.filter(
+      (node) =>
+        node.label.toLowerCase().includes(query) ||
+        node.description.toLowerCase().includes(query) ||
+        node.category.toLowerCase().includes(query)
+    );
+  }, [search]);
+
+  const categories = [
+    "Triggers",
+    "AI Agents",
+    "Logic",
+    "Actions",
+    "Communication",
+  ];
+
   return (
-    <div className="bg-white border rounded p-3 h-100">
-      <h5 className="fw-bold mb-1">Add Node</h5>
+    <div className="node-library">
+      <div className="node-library-header">
+        <div>
+          <h5 className="node-library-title">
+            Node Library
+          </h5>
 
-      <p className="text-muted small mb-3">
-        Choose a node to add to your workflow.
-      </p>
+          <p className="node-library-subtitle">
+            Build your automation
+          </p>
+        </div>
 
-      <div className="d-flex flex-column gap-2">
-        {nodeTypes.map((node) => (
-          <button
-            key={node.name}
-            type="button"
-            className="btn btn-light border text-start p-3"
-            onClick={() => onAddNode(node.name)}
-          >
-            <div className="fw-semibold">
-              {node.name}
+        <span className="node-count">
+          {filteredNodes.length}
+        </span>
+      </div>
+
+      <div className="node-search-wrapper">
+        <span className="node-search-icon">
+          ⌕
+        </span>
+
+        <input
+          type="text"
+          className="node-search"
+          placeholder="Search nodes..."
+          value={search}
+          onChange={(event) =>
+            setSearch(event.target.value)
+          }
+        />
+      </div>
+
+      <div className="node-library-content">
+        {categories.map((category) => {
+          const categoryNodes = filteredNodes.filter(
+            (node) => node.category === category
+          );
+
+          if (categoryNodes.length === 0) {
+            return null;
+          }
+
+          return (
+            <div
+              key={category}
+              className="node-category"
+            >
+              <div className="node-category-title">
+                {category}
+              </div>
+
+              <div className="node-category-items">
+                {categoryNodes.map((node) => (
+                  <button
+                    key={node.type}
+                    type="button"
+                    className="node-library-item"
+                    onClick={() =>
+                      onAddNode(
+                        node.type,
+                        node.label,
+                        node.description
+                      )
+                    }
+                  >
+                    <div className="node-library-icon">
+                      {node.icon}
+                    </div>
+
+                    <div className="node-library-info">
+                      <div className="node-library-label">
+                        {node.label}
+                      </div>
+
+                      <div className="node-library-description">
+                        {node.description}
+                      </div>
+                    </div>
+
+                    <span className="node-add-icon">
+                      +
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
+        {filteredNodes.length === 0 && (
+          <div className="node-empty">
+            <div className="node-empty-icon">
+              ⌕
             </div>
 
-            <small className="text-muted">
-              {node.description}
+            <div className="fw-semibold">
+              No nodes found
+            </div>
+
+            <small>
+              Try another search term.
             </small>
-          </button>
-        ))}
+          </div>
+        )}
       </div>
     </div>
   );

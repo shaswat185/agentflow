@@ -1,6 +1,7 @@
 import {
   Background,
   Controls,
+  MiniMap,
   ReactFlow,
   type Connection,
   type Edge,
@@ -18,7 +19,10 @@ type WorkflowCanvasProps = {
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
-  onNodeClick: (event: React.MouseEvent, node: Node) => void;
+  onNodeClick: (
+    event: React.MouseEvent,
+    node: Node
+  ) => void;
 };
 
 const nodeTypes = {
@@ -34,12 +38,7 @@ const WorkflowCanvas = ({
   onNodeClick,
 }: WorkflowCanvasProps) => {
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "600px",
-      }}
-    >
+    <div className="workflow-canvas-wrapper">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -52,9 +51,34 @@ const WorkflowCanvas = ({
         nodesConnectable
         elementsSelectable
         fitView
+        fitViewOptions={{
+          padding: 0.25,
+        }}
+        minZoom={0.4}
+        maxZoom={1.6}
+        defaultEdgeOptions={{
+          animated: false,
+          style: {
+            strokeWidth: 2,
+          },
+        }}
       >
-        <Background />
-        <Controls />
+        <Background
+          gap={20}
+          size={1}
+        />
+
+        <Controls
+          showInteractive={false}
+          position="bottom-left"
+        />
+
+        <MiniMap
+          position="bottom-right"
+          pannable
+          zoomable
+          nodeStrokeWidth={3}
+        />
       </ReactFlow>
     </div>
   );
