@@ -35,6 +35,9 @@ const AppRoutes = () => {
                     element={<WorkflowBuilder />}
                 />
 
+                <Route path="/workflows/:id" element={<WorkflowBuilder />} />
+                
+
                 <Route path="/executions" element={<Executions />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/jobs" element={<Jobs />} />

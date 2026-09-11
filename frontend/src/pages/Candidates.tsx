@@ -1,143 +1,472 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+type CandidateStatus =
+  | "New"
+  | "Screening"
+  | "Shortlisted"
+  | "Interview"
+  | "Rejected";
 
 type Candidate = {
   id: string;
   name: string;
   email: string;
+  phone: string;
   job: string;
-  experience: string;
   score: number;
-  status: "Shortlisted" | "Review" | "Rejected";
+  status: CandidateStatus;
+  experience: string;
+  skills: string;
+  createdAt: string;
 };
 
+const STORAGE_KEY = "agentflow-candidates";
+
+const initialCandidates: Candidate[] = [
+  {
+    id: "candidate-1",
+    name: "Rahul Sharma",
+    email: "rahul.sharma@example.com",
+    phone: "+91 98765 43210",
+    job: "Senior React Developer",
+    score: 92,
+    status: "Shortlisted",
+    experience: "4 years",
+    skills: "React, TypeScript, Node.js",
+    createdAt: "Today",
+  },
+  {
+    id: "candidate-2",
+    name: "Priya Singh",
+    email: "priya.singh@example.com",
+    phone: "+91 98765 12345",
+    job: "Full-Stack Developer",
+    score: 84,
+    status: "Interview",
+    experience: "3 years",
+    skills: "React, Node.js, MongoDB",
+    createdAt: "Yesterday",
+  },
+  {
+    id: "candidate-3",
+    name: "Aman Verma",
+    email: "aman.verma@example.com",
+    phone: "+91 99887 66554",
+    job: "Frontend Developer",
+    score: 68,
+    status: "Screening",
+    experience: "2 years",
+    skills: "JavaScript, React, Bootstrap",
+    createdAt: "2 days ago",
+  },
+];
+
 const Candidates = () => {
-  const [selectedCandidate, setSelectedCandidate] =
+  const [candidates, setCandidates] =
+    useState<Candidate[]>(initialCandidates);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+
+  const [showModal, setShowModal] = useState(false);
+  const [editingCandidate, setEditingCandidate] =
     useState<Candidate | null>(null);
 
-  const candidates: Candidate[] = [
-    {
-      id: "CAN-001",
-      name: "Aarav Sharma",
-      email: "aarav@example.com",
-      job: "Frontend Developer",
-      experience: "4 years",
-      score: 92,
-      status: "Shortlisted",
-    },
-    {
-      id: "CAN-002",
-      name: "Priya Mehta",
-      email: "priya@example.com",
-      job: "Full-Stack Developer",
-      experience: "3 years",
-      score: 86,
-      status: "Shortlisted",
-    },
-    {
-      id: "CAN-003",
-      name: "Rahul Verma",
-      email: "rahul@example.com",
-      job: "AI Engineer",
-      experience: "2 years",
-      score: 74,
-      status: "Review",
-    },
-    {
-      id: "CAN-004",
-      name: "Neha Kapoor",
-      email: "neha@example.com",
-      job: "Frontend Developer",
-      experience: "1 year",
-      score: 61,
-      status: "Rejected",
-    },
-  ];
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    job: "",
+    score: 70,
+    status: "New" as CandidateStatus,
+    experience: "",
+    skills: "",
+  });
 
-  const getScoreClass = (score: number) => {
-    if (score >= 80) return "text-success";
-    if (score >= 70) return "text-warning";
-    return "text-danger";
+  useEffect(() => {
+    const savedCandidates = localStorage.getItem(STORAGE_KEY);
+
+    if (!savedCandidates) return;
+
+    try {
+      const parsed = JSON.parse(savedCandidates);
+
+      if (Array.isArray(parsed)) {
+        setCandidates(parsed);
+      }
+    } catch (error) {
+      console.error("Failed to load candidates:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(candidates));
+  }, [candidates]);
+
+  const filteredCandidates = useMemo(() => {
+    return candidates.filter((candidate) => {
+      const searchValue = search.toLowerCase().trim();
+
+      const matchesSearch =
+        !searchValue ||
+        candidate.name.toLowerCase().includes(searchValue) ||
+        candidate.email.toLowerCase().includes(searchValue) ||
+        candidate.job.toLowerCase().includes(searchValue) ||
+        candidate.skills.toLowerCase().includes(searchValue);
+
+      const matchesStatus =
+        statusFilter === "All" ||
+        candidate.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [candidates, search, statusFilter]);
+
+  const resetForm = () => {
+    setForm({
+      name: "",
+      email: "",
+      phone: "",
+      job: "",
+      score: 70,
+      status: "New",
+      experience: "",
+      skills: "",
+    });
+
+    setEditingCandidate(null);
   };
 
-  const getStatusClass = (status: Candidate["status"]) => {
-    if (status === "Shortlisted") return "text-bg-success";
-    if (status === "Review") return "text-bg-warning";
-    return "text-bg-danger";
+  const openAddModal = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const openEditModal = (candidate: Candidate) => {
+    setEditingCandidate(candidate);
+
+    setForm({
+      name: candidate.name,
+      email: candidate.email,
+      phone: candidate.phone,
+      job: candidate.job,
+      score: candidate.score,
+      status: candidate.status,
+      experience: candidate.experience,
+      skills: candidate.skills,
+    });
+
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    resetForm();
+  };
+
+  const handleFormChange = (
+    field: keyof typeof form,
+    value: string | number
+  ) => {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleSaveCandidate = () => {
+    if (
+      !form.name.trim() ||
+      !form.email.trim() ||
+      !form.job.trim()
+    ) {
+      window.alert("Name, email and job are required.");
+      return;
+    }
+
+    if (editingCandidate) {
+      setCandidates((current) =>
+        current.map((candidate) =>
+          candidate.id === editingCandidate.id
+            ? {
+                ...candidate,
+                ...form,
+              }
+            : candidate
+        )
+      );
+    } else {
+      const newCandidate: Candidate = {
+        id: `candidate-${Date.now()}`,
+        ...form,
+        createdAt: "Just now",
+      };
+
+      setCandidates((current) => [newCandidate, ...current]);
+    }
+
+    closeModal();
+  };
+
+  const handleDeleteCandidate = (candidate: Candidate) => {
+    const confirmed = window.confirm(
+      `Delete candidate "${candidate.name}"?`
+    );
+
+    if (!confirmed) return;
+
+    setCandidates((current) =>
+      current.filter((item) => item.id !== candidate.id)
+    );
+  };
+
+  const getStatusClass = (status: CandidateStatus) => {
+    switch (status) {
+      case "Shortlisted":
+        return "bg-success-subtle text-success";
+
+      case "Interview":
+        return "bg-primary-subtle text-primary";
+
+      case "Rejected":
+        return "bg-danger-subtle text-danger";
+
+      case "Screening":
+        return "bg-warning-subtle text-warning-emphasis";
+
+      default:
+        return "bg-secondary-subtle text-secondary";
+    }
+  };
+
+  const getScoreClass = (score: number) => {
+    if (score >= 80) {
+      return "text-success";
+    }
+
+    if (score >= 60) {
+      return "text-warning";
+    }
+
+    return "text-danger";
   };
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      {/* HEADER */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-          <h2 className="mb-1">Candidates</h2>
-          <p className="text-muted mb-0">
-            Review applicants and AI-powered screening results.
+          <h2 className="fw-bold mb-1">Candidates</h2>
+
+          <p className="text-secondary mb-0">
+            Manage candidates and track their recruitment progress.
           </p>
         </div>
 
-        <div className="text-muted small">
-          {candidates.length} applicants
+        <button
+          type="button"
+          className="btn btn-dark"
+          onClick={openAddModal}
+        >
+          + Add Candidate
+        </button>
+      </div>
+
+      {/* STATS */}
+      <div className="row g-3 mb-4">
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <div className="text-secondary small">
+                Total Candidates
+              </div>
+
+              <div className="fs-3 fw-bold mt-1">
+                {candidates.length}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <div className="text-secondary small">
+                Shortlisted
+              </div>
+
+              <div className="fs-3 fw-bold mt-1 text-success">
+                {
+                  candidates.filter(
+                    (candidate) =>
+                      candidate.status === "Shortlisted"
+                  ).length
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <div className="text-secondary small">
+                Interviews
+              </div>
+
+              <div className="fs-3 fw-bold mt-1 text-primary">
+                {
+                  candidates.filter(
+                    (candidate) =>
+                      candidate.status === "Interview"
+                  ).length
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <div className="text-secondary small">
+                Average Score
+              </div>
+
+              <div className="fs-3 fw-bold mt-1">
+                {candidates.length > 0
+                  ? Math.round(
+                      candidates.reduce(
+                        (total, candidate) =>
+                          total + candidate.score,
+                        0
+                      ) / candidates.length
+                    )
+                  : 0}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* FILTERS */}
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-body">
+          <div className="row g-3">
+            <div className="col-12 col-lg-8">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search candidates, email, job or skills..."
+                value={search}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
+              />
+            </div>
+
+            <div className="col-12 col-lg-4">
+              <select
+                className="form-select"
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value)
+                }
+              >
+                <option value="All">All Statuses</option>
+                <option value="New">New</option>
+                <option value="Screening">Screening</option>
+                <option value="Shortlisted">Shortlisted</option>
+                <option value="Interview">Interview</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CANDIDATES */}
       <div className="card border-0 shadow-sm">
-        <div className="card-body p-0">
+        <div className="card-header bg-white border-0 py-3">
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 className="mb-1">Candidate Pipeline</h5>
+
+              <div className="small text-secondary">
+                {filteredCandidates.length} candidate
+                {filteredCandidates.length !== 1 ? "s" : ""}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {filteredCandidates.length === 0 ? (
+          <div className="text-center py-5 px-3">
+            <div className="fs-1 mb-2">👤</div>
+
+            <h5>No candidates found</h5>
+
+            <p className="text-secondary mb-3">
+              Try changing your search or add a new candidate.
+            </p>
+
+            <button
+              type="button"
+              className="btn btn-dark"
+              onClick={openAddModal}
+            >
+              + Add Candidate
+            </button>
+          </div>
+        ) : (
           <div className="table-responsive">
             <table className="table align-middle mb-0">
               <thead className="table-light">
                 <tr>
-                  <th className="px-4">Candidate</th>
+                  <th className="ps-4">Candidate</th>
                   <th>Job</th>
-                  <th>Experience</th>
-                  <th>AI Score</th>
+                  <th>Score</th>
                   <th>Status</th>
-                  <th></th>
+                  <th>Experience</th>
+                  <th>Added</th>
+                  <th className="text-end pe-4">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {candidates.map((candidate) => (
+                {filteredCandidates.map((candidate) => (
                   <tr key={candidate.id}>
-                    <td className="px-4">
+                    <td className="ps-4">
                       <div className="fw-semibold">
                         {candidate.name}
                       </div>
 
-                      <small className="text-muted">
+                      <div className="small text-secondary">
                         {candidate.email}
-                      </small>
+                      </div>
                     </td>
 
-                    <td>{candidate.job}</td>
+                    <td>
+                      <div className="fw-medium">
+                        {candidate.job}
+                      </div>
 
-                    <td>{candidate.experience}</td>
+                      <div className="small text-secondary">
+                        {candidate.skills}
+                      </div>
+                    </td>
 
                     <td>
-                      <div
+                      <span
                         className={`fw-bold ${getScoreClass(
                           candidate.score
                         )}`}
                       >
-                        {candidate.score}/100
-                      </div>
-
-                      <div
-                        className="progress mt-1"
-                        style={{ width: "90px", height: "5px" }}
-                      >
-                        <div
-                          className={`progress-bar ${
-                            candidate.score >= 80
-                              ? "bg-success"
-                              : candidate.score >= 70
-                                ? "bg-warning"
-                                : "bg-danger"
-                          }`}
-                          style={{
-                            width: `${candidate.score}%`,
-                          }}
-                        />
-                      </div>
+                        {candidate.score}
+                      </span>
+                        <span className="text-secondary">
+                          /100
+                        </span>
                     </td>
 
                     <td>
@@ -150,104 +479,268 @@ const Candidates = () => {
                       </span>
                     </td>
 
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={() =>
-                          setSelectedCandidate(candidate)
-                        }
-                      >
-                        View
-                      </button>
+                    <td>{candidate.experience || "—"}</td>
+
+                    <td className="text-secondary">
+                      {candidate.createdAt}
+                    </td>
+
+                    <td className="text-end pe-4">
+                      <div className="d-flex justify-content-end gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() =>
+                            openEditModal(candidate)
+                          }
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() =>
+                            handleDeleteCandidate(candidate)
+                          }
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        )}
       </div>
 
-      {selectedCandidate && (
-        <div className="card border-0 shadow-sm mt-4">
-          <div className="card-body p-4">
-            <div className="d-flex justify-content-between align-items-start mb-4">
-              <div>
-                <h5 className="mb-1">
-                  {selectedCandidate.name}
-                </h5>
+      {/* MODAL */}
+      {showModal && (
+        <div
+          className="modal d-block"
+          tabIndex={-1}
+          role="dialog"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered">
+            <div className="modal-content border-0 shadow">
+              <div className="modal-header">
+                <div>
+                  <h5 className="modal-title">
+                    {editingCandidate
+                      ? "Edit Candidate"
+                      : "Add Candidate"}
+                  </h5>
 
-                <small className="text-muted">
-                  {selectedCandidate.id}
-                </small>
+                  <div className="small text-secondary">
+                    Add candidate information to the pipeline.
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={closeModal}
+                />
               </div>
 
-              <button
-                type="button"
-                className="btn btn-sm btn-light border"
-                onClick={() => setSelectedCandidate(null)}
-              >
-                Close
-              </button>
-            </div>
+              <div className="modal-body">
+                <div className="row g-3">
+                  <div className="col-12 col-md-6">
+                    <label className="form-label fw-semibold">
+                      Full Name
+                    </label>
 
-            <div className="row g-3">
-              <div className="col-md-6">
-                <div className="bg-light rounded p-3">
-                  <small className="text-muted d-block">
-                    Email
-                  </small>
-                  <strong>{selectedCandidate.email}</strong>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={form.name}
+                      onChange={(event) =>
+                        handleFormChange(
+                          "name",
+                          event.target.value
+                        )
+                      }
+                      placeholder="Candidate name"
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-6">
+                    <label className="form-label fw-semibold">
+                      Email
+                    </label>
+
+                    <input
+                      type="email"
+                      className="form-control"
+                      value={form.email}
+                      onChange={(event) =>
+                        handleFormChange(
+                          "email",
+                          event.target.value
+                        )
+                      }
+                      placeholder="candidate@example.com"
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-6">
+                    <label className="form-label fw-semibold">
+                      Phone
+                    </label>
+
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={form.phone}
+                      onChange={(event) =>
+                        handleFormChange(
+                          "phone",
+                          event.target.value
+                        )
+                      }
+                      placeholder="+91..."
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-6">
+                    <label className="form-label fw-semibold">
+                      Job
+                    </label>
+
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={form.job}
+                      onChange={(event) =>
+                        handleFormChange(
+                          "job",
+                          event.target.value
+                        )
+                      }
+                      placeholder="Frontend Developer"
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-4">
+                    <label className="form-label fw-semibold">
+                      Score
+                    </label>
+
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      className="form-control"
+                      value={form.score}
+                      onChange={(event) =>
+                        handleFormChange(
+                          "score",
+                          Math.min(
+                            100,
+                            Math.max(
+                              0,
+                              Number(event.target.value)
+                            )
+                          )
+                        )
+                      }
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-4">
+                    <label className="form-label fw-semibold">
+                      Status
+                    </label>
+
+                    <select
+                      className="form-select"
+                      value={form.status}
+                      onChange={(event) =>
+                        handleFormChange(
+                          "status",
+                          event.target
+                            .value as CandidateStatus
+                        )
+                      }
+                    >
+                      <option value="New">New</option>
+                      <option value="Screening">
+                        Screening
+                      </option>
+                      <option value="Shortlisted">
+                        Shortlisted
+                      </option>
+                      <option value="Interview">
+                        Interview
+                      </option>
+                      <option value="Rejected">
+                        Rejected
+                      </option>
+                    </select>
+                  </div>
+
+                  <div className="col-12 col-md-4">
+                    <label className="form-label fw-semibold">
+                      Experience
+                    </label>
+
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={form.experience}
+                      onChange={(event) =>
+                        handleFormChange(
+                          "experience",
+                          event.target.value
+                        )
+                      }
+                      placeholder="3 years"
+                    />
+                  </div>
+
+                  <div className="col-12">
+                    <label className="form-label fw-semibold">
+                      Skills
+                    </label>
+
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={form.skills}
+                      onChange={(event) =>
+                        handleFormChange(
+                          "skills",
+                          event.target.value
+                        )
+                      }
+                      placeholder="React, TypeScript, Node.js"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="col-md-6">
-                <div className="bg-light rounded p-3">
-                  <small className="text-muted d-block">
-                    Applied Position
-                  </small>
-                  <strong>{selectedCandidate.job}</strong>
-                </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={closeModal}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-dark"
+                  onClick={handleSaveCandidate}
+                >
+                  {editingCandidate
+                    ? "Save Changes"
+                    : "Add Candidate"}
+                </button>
               </div>
-
-              <div className="col-md-6">
-                <div className="bg-light rounded p-3">
-                  <small className="text-muted d-block">
-                    Experience
-                  </small>
-                  <strong>
-                    {selectedCandidate.experience}
-                  </strong>
-                </div>
-              </div>
-
-              <div className="col-md-6">
-                <div className="bg-light rounded p-3">
-                  <small className="text-muted d-block">
-                    AI Screening Score
-                  </small>
-
-                  <strong
-                    className={getScoreClass(
-                      selectedCandidate.score
-                    )}
-                  >
-                    {selectedCandidate.score}/100
-                  </strong>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <h6>AI Screening Result</h6>
-
-              <p className="text-muted mb-0">
-                Candidate profile was evaluated against the
-                selected job requirements. The AI score represents
-                the current match quality based on skills,
-                experience, and job requirements.
-              </p>
             </div>
           </div>
         </div>

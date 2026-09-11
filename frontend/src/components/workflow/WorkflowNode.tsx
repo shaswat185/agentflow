@@ -1,88 +1,39 @@
-import {
-  Handle,
-  Position,
-  type NodeProps,
-} from "reactflow";
+import { Handle, Position, type NodeProps } from "reactflow";
 
-type WorkflowNodeData = {
-  label: string;
-  description?: string;
-  nodeType?: string;
-  executionStatus?: "waiting" | "running" | "completed" | "failed";
-  onDelete?: () => void;
-};
-
-const WorkflowNode = ({
-  data,
-}: NodeProps<WorkflowNodeData>) => {
+const WorkflowNode = ({ data }: NodeProps) => {
   const isCondition = data.nodeType === "condition";
-  const executionStatus = data.executionStatus ?? "waiting";
 
-  const getNodeIcon = () => {
-    switch (data.nodeType) {
-      case "trigger":
-        return "⚡";
-      case "resume-parser":
-        return "✦";
-      case "job-matching":
-        return "⌁";
-      case "score":
-        return "◈";
-      case "condition":
-        return "◇";
-      case "shortlist":
-        return "✓";
-      case "reject":
-        return "×";
-      case "email":
-        return "✉";
-      default:
-        return "●";
-    }
-  };
-
-  const getNodeCategory = () => {
-    switch (data.nodeType) {
-      case "trigger":
-        return "TRIGGER";
-      case "resume-parser":
-      case "job-matching":
-      case "score":
-        return "AI AGENT";
-      case "condition":
-        return "LOGIC";
-      case "shortlist":
-      case "reject":
-        return "ACTION";
-      case "email":
-        return "COMMUNICATION";
-      default:
-        return "NODE";
-    }
-  };
+  const executionStatus = data.executionStatus ?? "idle";
 
   return (
     <div
-  className={`workflow-node workflow-node-${executionStatus}`}
-  style={{
-    width: "250px",
-    position: "relative",
-  }}
->
+      className={`workflow-node workflow-node-${data.nodeType} workflow-node-status-${executionStatus}`}
+    >
+      {/* INPUT */}
+
       <Handle
         type="target"
         position={Position.Left}
         id="input"
-        className="workflow-handle"
+        className="workflow-handle workflow-input-handle"
       />
+
+      {/* HEADER */}
 
       <div className="workflow-node-header">
         <div className="workflow-node-icon">
-          {getNodeIcon()}
+          {data.nodeType === "trigger" && "⚡"}
+          {data.nodeType === "resume-parser" && "AI"}
+          {data.nodeType === "job-matching" && "↔"}
+          {data.nodeType === "score" && "★"}
+          {data.nodeType === "condition" && "◇"}
+          {data.nodeType === "shortlist" && "✓"}
+          {data.nodeType === "reject" && "×"}
+          {data.nodeType === "email" && "✉"}
         </div>
 
-        <div className="workflow-node-category">
-          {getNodeCategory()}
+        <div className="workflow-node-title">
+          {data.label}
         </div>
 
         <button
@@ -98,64 +49,88 @@ const WorkflowNode = ({
         </button>
       </div>
 
+      {/* BODY */}
+
       <div className="workflow-node-body">
-  <div className="workflow-node-title">
-    {data.label}
-  </div>
+        <p className="workflow-node-description">
+          {data.description}
+        </p>
 
-  <div className="workflow-node-description">
-    {data.description || "Workflow node"}
-  </div>
+        {data.nodeType === "condition" && (
+          <>
+            <div className="workflow-condition-value">
+              <span>Score</span>
 
-  {executionStatus !== "waiting" && (
-    <div className="workflow-node-status">
-      <span className="workflow-node-status-dot" />
+              <strong>
+                {data.conditionOperator ?? ">="}{" "}
+                {data.conditionValue ?? 70}
+              </strong>
+            </div>
 
-      <span>
-        {executionStatus === "running" &&
-          "Running"}
+            {/* CONDITION BRANCHES */}
 
-        {executionStatus === "completed" &&
-          "Completed"}
+            <div className="workflow-condition-branches">
+              <div className="workflow-condition-branch workflow-condition-yes">
+                <span>YES</span>
 
-        {executionStatus === "failed" &&
-          "Failed"}
-      </span>
-    </div>
-  )}
-</div>
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id="yes"
+                  className="workflow-handle workflow-output-handle workflow-yes-handle"
+                />
+              </div>
 
-      {isCondition ? (
-        <>
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="yes"
-            className="workflow-handle workflow-handle-yes"
-          />
+              <div className="workflow-condition-branch workflow-condition-no">
+                <span>NO</span>
 
-          <span className="workflow-branch-label workflow-yes-label">
-            YES
-          </span>
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id="no"
+                  className="workflow-handle workflow-output-handle workflow-no-handle"
+                />
+              </div>
+            </div>
+          </>
+        )}
 
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="no"
-            className="workflow-handle workflow-handle-no"
-          />
+        {data.nodeType === "score" && (
+          <div className="workflow-score-preview">
+            Candidate evaluation
+          </div>
+        )}
+      </div>
 
-          <span className="workflow-branch-label workflow-no-label">
-            NO
-          </span>
-        </>
-      ) : (
+      {/* NORMAL OUTPUT */}
+
+      {!isCondition && (
         <Handle
           type="source"
           position={Position.Right}
           id="output"
-          className="workflow-handle"
+          className="workflow-handle workflow-output-handle"
         />
+      )}
+
+      {/* EXECUTION STATUS */}
+
+      {executionStatus === "running" && (
+        <div className="workflow-node-execution">
+          Running
+        </div>
+      )}
+
+      {executionStatus === "completed" && (
+        <div className="workflow-node-execution workflow-node-execution-completed">
+          ✓ Completed
+        </div>
+      )}
+
+      {executionStatus === "waiting" && (
+        <div className="workflow-node-execution workflow-node-execution-waiting">
+          Waiting
+        </div>
       )}
     </div>
   );
