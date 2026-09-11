@@ -6,7 +6,6 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-
   color: #111827;
   background: #f8fafc;
 }
@@ -32,7 +31,9 @@ a {
   text-decoration: none;
 }
 
-
+/* ================================
+   WORKFLOW BUILDER HEADER
+================================ */
 
 .workflow-builder-header {
   display: flex;
@@ -140,6 +141,9 @@ a {
   background: #1d4ed8;
 }
 
+/* ================================
+   WORKFLOW NODES
+================================ */
 
 .workflow-node {
   background: #ffffff;
@@ -225,6 +229,10 @@ a {
   line-height: 1.5;
 }
 
+/* ================================
+   WORKFLOW HANDLES
+================================ */
+
 .workflow-handle {
   width: 11px !important;
   height: 11px !important;
@@ -254,6 +262,7 @@ a {
   background: #dc2626 !important;
   box-shadow: 0 0 0 1px #fecaca;
 }
+
 .workflow-handle-no:hover {
   background: #b91c1c !important;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
@@ -275,13 +284,15 @@ a {
   background: #f0fdf4;
 }
 
-
 .workflow-no-label {
   top: calc(70% - 7px);
   color: #b91c1c;
   background: #fef2f2;
 }
 
+/* ================================
+   WORKFLOW CANVAS
+================================ */
 
 .workflow-canvas-wrapper {
   width: 100%;
@@ -293,8 +304,7 @@ a {
   background: #f8fafc;
 }
 
-.workflow-canvas-wrapper
-  .react-flow__controls {
+.workflow-canvas-wrapper .react-flow__controls {
   margin: 0 0 16px 16px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -302,8 +312,7 @@ a {
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
-.workflow-canvas-wrapper
-  .react-flow__controls-button {
+.workflow-canvas-wrapper .react-flow__controls-button {
   width: 34px;
   height: 34px;
   border-bottom: 1px solid #e2e8f0;
@@ -311,13 +320,11 @@ a {
   color: #475569;
 }
 
-.workflow-canvas-wrapper
-  .react-flow__controls-button:hover {
+.workflow-canvas-wrapper .react-flow__controls-button:hover {
   background: #f8fafc;
 }
 
-.workflow-canvas-wrapper
-  .react-flow__minimap {
+.workflow-canvas-wrapper .react-flow__minimap {
   margin: 0 16px 16px 0;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -325,18 +332,18 @@ a {
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
-.workflow-canvas-wrapper
-  .react-flow__edge-path {
+.workflow-canvas-wrapper .react-flow__edge-path {
   stroke: #64748b;
 }
 
-.workflow-canvas-wrapper
-  .react-flow__connection-line {
+.workflow-canvas-wrapper .react-flow__connection-line {
   stroke: #2563eb;
   stroke-width: 2;
 }
 
-
+/* ================================
+   NODE LIBRARY
+================================ */
 
 .node-library {
   height: 650px;
@@ -536,6 +543,9 @@ a {
   font-size: 25px;
 }
 
+/* ================================
+   NODE CONFIG PANEL
+================================ */
 
 .node-config-panel {
   height: 650px;
@@ -701,6 +711,32 @@ a {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
+.node-config-field select {
+  width: 100%;
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid #dbe1e8;
+  border-radius: 8px;
+  outline: none;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.node-config-field select:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.node-config-help {
+  display: block;
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
 .node-config-info-row {
   display: flex;
   align-items: center;
@@ -800,32 +836,9 @@ a {
   line-height: 1.5;
 }
 
-
-.node-config-field select {
-  width: 100%;
-  height: 38px;
-  padding: 0 11px;
-  border: 1px solid #dbe1e8;
-  border-radius: 8px;
-  outline: none;
-  background: #ffffff;
-  color: #334155;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.node-config-field select:focus {
-  border-color: #93c5fd;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
-}
-
-.node-config-help {
-  display: block;
-  margin-top: 6px;
-  color: #94a3b8;
-  font-size: 9px;
-  line-height: 1.5;
-}
+/* ================================
+   CONDITION
+================================ */
 
 .condition-preview {
   display: flex;
@@ -900,6 +913,9 @@ a {
   font-size: 9px;
 }
 
+/* ================================
+   EMAIL
+================================ */
 
 .email-preview {
   margin-top: 16px;
@@ -945,6 +961,9 @@ a {
   background: #cbd5e1;
 }
 
+/* ================================
+   TRIGGER
+================================ */
 
 .trigger-info {
   display: flex;
@@ -1014,6 +1033,10 @@ a {
   color: #64748b;
   font-size: 9px;
 }
+
+/* ================================
+   ACTION STATUS
+================================ */
 
 .action-status-card {
   display: flex;
@@ -1106,6 +1129,9 @@ a {
   color: #64748b;
 }
 
+/* ================================
+   DELETE MODAL
+================================ */
 
 .delete-modal-overlay {
   position: fixed;
@@ -1124,13 +1150,13 @@ a {
   border-radius: 20px;
   padding: 32px;
   text-align: center;
-  box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
 }
 
 .delete-modal-icon {
   width: 70px;
   height: 70px;
-  margin: auto;
+  margin: 0 auto 20px;
   border-radius: 50%;
   background: #fef2f2;
   color: #dc2626;
@@ -1138,10 +1164,11 @@ a {
   align-items: center;
   justify-content: center;
   font-size: 30px;
-  margin-bottom: 20px;
 }
 
-
+/* ================================
+   WORKFLOW RUN
+================================ */
 
 .workflow-run-btn {
   height: 40px;
@@ -1165,6 +1192,9 @@ a {
   cursor: not-allowed;
 }
 
+/* ================================
+   WORKFLOW EXECUTION STATUS
+================================ */
 
 .workflow-node-running {
   border-color: #2563eb;
@@ -1201,8 +1231,7 @@ a {
   color: #2563eb;
 }
 
-.workflow-node-running
-  .workflow-node-status-dot {
+.workflow-node-running .workflow-node-status-dot {
   background: #2563eb;
   animation: workflow-pulse 1s infinite;
 }
@@ -1211,8 +1240,7 @@ a {
   color: #059669;
 }
 
-.workflow-node-completed
-  .workflow-node-status-dot {
+.workflow-node-completed .workflow-node-status-dot {
   background: #10b981;
 }
 
@@ -1220,8 +1248,7 @@ a {
   color: #dc2626;
 }
 
-.workflow-node-failed
-  .workflow-node-status-dot {
+.workflow-node-failed .workflow-node-status-dot {
   background: #ef4444;
 }
 
@@ -1239,6 +1266,9 @@ a {
   }
 }
 
+/* ================================
+   EXECUTION LOG
+================================ */
 
 .execution-log-panel {
   margin-top: 16px;
@@ -1325,4 +1355,828 @@ a {
   color: #0f172a;
   font-size: 13px;
   font-weight: 600;
+}
+
+/* ================================
+   HOME PAGE
+================================ */
+
+.agentflow-home {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.agentflow-logo {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+
+.agentflow-logo span {
+  color: #2563eb;
+}
+
+.agentflow-nav-link {
+  color: #475569 !important;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.agentflow-nav-link:hover {
+  color: #2563eb !important;
+}
+
+/* Hero */
+
+.agentflow-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 100px 0 110px;
+  background:
+    radial-gradient(
+      circle at 85% 20%,
+      rgba(37, 99, 235, 0.08),
+      transparent 30%
+    ),
+    linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #f8fafc 100%
+    );
+}
+
+.agentflow-hero::before {
+  content: "";
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  top: -250px;
+  right: -200px;
+  border: 1px solid rgba(37, 99, 235, 0.08);
+  border-radius: 50%;
+}
+
+.agentflow-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  margin-bottom: 24px;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.agentflow-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.agentflow-hero-title {
+  max-width: 680px;
+  margin-bottom: 24px;
+  color: #0f172a;
+  font-size: clamp(42px, 5vw, 68px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -2.8px;
+}
+
+.agentflow-hero-title span {
+  color: #2563eb;
+}
+
+.agentflow-hero-description {
+  max-width: 620px;
+  margin-bottom: 30px;
+  color: #64748b;
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.agentflow-hero-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 24px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Product Preview */
+
+.agentflow-product-preview {
+  position: relative;
+  border: 1px solid #dbe3ef;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow:
+    0 30px 80px rgba(15, 23, 42, 0.12),
+    0 5px 20px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  transform: perspective(1200px) rotateY(-2deg);
+}
+
+.agentflow-window-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.agentflow-window-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.agentflow-window-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+
+.agentflow-window-title {
+  flex: 1;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.agentflow-active-badge {
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.agentflow-canvas-preview {
+  padding: 24px;
+  background:
+    linear-gradient(
+      rgba(226, 232, 240, 0.45) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(226, 232, 240, 0.45) 1px,
+      transparent 1px
+    ),
+    #f8fafc;
+  background-size: 24px 24px;
+}
+
+.agentflow-canvas-grid {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.agentflow-preview-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.04);
+}
+
+.agentflow-preview-node strong {
+  display: block;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.agentflow-preview-node small {
+  display: block;
+  margin-top: 3px;
+  color: #94a3b8;
+  font-size: 9px;
+}
+
+.agentflow-preview-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.agentflow-preview-icon.trigger {
+  background: #eff6ff;
+}
+
+.agentflow-preview-icon.ai {
+  background: #f5f3ff;
+}
+
+.agentflow-preview-icon.match {
+  background: #ecfeff;
+}
+
+.agentflow-preview-icon.score {
+  background: #fff7ed;
+}
+
+.agentflow-check {
+  margin-left: auto;
+  color: #059669;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.agentflow-score-value {
+  margin-left: auto;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.agentflow-preview-line {
+  width: 2px;
+  height: 20px;
+  margin: 0 auto;
+  background: #cbd5e1;
+}
+
+.agentflow-condition-preview {
+  padding: 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.agentflow-condition-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.agentflow-condition-heading span {
+  color: #8b5cf6;
+  font-size: 16px;
+}
+
+.agentflow-condition-heading strong {
+  color: #0f172a;
+  font-size: 11px;
+}
+
+.agentflow-condition-heading small {
+  margin-left: auto;
+  color: #94a3b8;
+  font-size: 9px;
+}
+
+.agentflow-condition-branches {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.agentflow-branch-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 7px;
+}
+
+.agentflow-branch-preview strong {
+  font-size: 8px;
+}
+
+.agentflow-branch-preview span {
+  font-size: 9px;
+}
+
+.agentflow-branch-preview.yes {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.agentflow-branch-preview.no {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.agentflow-preview-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid #e2e8f0;
+  color: #94a3b8;
+  font-size: 9px;
+}
+
+.agentflow-preview-footer strong {
+  color: #334155;
+}
+
+/* Metrics */
+
+.agentflow-metrics {
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.agentflow-metric {
+  min-height: 105px;
+  padding: 25px 20px;
+  text-align: center;
+  border-right: 1px solid #e2e8f0;
+}
+
+.agentflow-metric:last-child {
+  border-right: none;
+}
+
+.agentflow-metric strong {
+  display: block;
+  color: #0f172a;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.agentflow-metric span {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+/* General Sections */
+
+.agentflow-section {
+  padding: 100px 0;
+}
+
+.agentflow-light-section {
+  background: #f8fafc;
+}
+
+.agentflow-section-heading {
+  max-width: 700px;
+  margin: 0 auto 55px;
+  text-align: center;
+}
+
+.agentflow-section-heading > span {
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+}
+
+.agentflow-section-heading h2 {
+  margin-top: 10px;
+  margin-bottom: 15px;
+  color: #0f172a;
+  font-size: clamp(30px, 4vw, 44px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -1.5px;
+}
+
+.agentflow-section-heading p {
+  margin-bottom: 0;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* Steps */
+
+.agentflow-step-card {
+  height: 100%;
+  padding: 30px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.agentflow-step-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.07);
+}
+
+.agentflow-step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 22px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.agentflow-step-card h5 {
+  margin-bottom: 10px;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.agentflow-step-card p {
+  margin-bottom: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* Recruitment Workflow */
+
+.agentflow-recruitment-flow {
+  padding: 25px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.agentflow-recruitment-node {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  background: #ffffff;
+}
+
+.agentflow-recruitment-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: #eff6ff;
+  font-size: 16px;
+}
+
+.agentflow-recruitment-node strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.agentflow-recruitment-node p {
+  margin: 0;
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.agentflow-node-arrow {
+  margin-left: auto;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.agentflow-recruitment-connector {
+  width: 2px;
+  height: 20px;
+  margin: 0 auto;
+  background: #cbd5e1;
+}
+
+/* Features */
+
+.agentflow-feature-card {
+  height: 100%;
+  padding: 28px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.agentflow-feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.07);
+}
+
+.agentflow-feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  background: #eff6ff;
+  font-size: 19px;
+}
+
+.agentflow-feature-card h5 {
+  margin-bottom: 10px;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.agentflow-feature-card p {
+  margin-bottom: 18px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.agentflow-feature-link {
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Use Cases */
+
+.agentflow-usecase-card {
+  height: 100%;
+  padding: 30px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.agentflow-usecase-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 20px;
+  border-radius: 11px;
+  background: #eff6ff;
+  font-size: 20px;
+}
+
+.agentflow-usecase-card h5 {
+  margin-bottom: 10px;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.agentflow-usecase-card p {
+  margin-bottom: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* CTA */
+
+.agentflow-cta-section {
+  padding: 80px 0;
+  background: #f8fafc;
+}
+
+.agentflow-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 35px;
+  padding: 55px;
+  border-radius: 18px;
+  background: #0f172a;
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.15);
+}
+
+.agentflow-cta span {
+  color: #60a5fa;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+}
+
+.agentflow-cta h2 {
+  max-width: 650px;
+  margin: 10px 0;
+  color: #ffffff;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -1.2px;
+}
+
+.agentflow-cta p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* Footer */
+
+.agentflow-footer {
+  padding: 65px 0 25px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.agentflow-footer-logo {
+  margin-bottom: 12px;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.agentflow-footer-logo span {
+  color: #2563eb;
+}
+
+.agentflow-footer p {
+  max-width: 400px;
+  margin-bottom: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.agentflow-footer h6 {
+  margin-bottom: 15px;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.agentflow-footer a:not(.agentflow-footer-logo) {
+  display: block;
+  margin-bottom: 9px;
+  color: #64748b;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.agentflow-footer a:not(.agentflow-footer-logo):hover {
+  color: #2563eb;
+}
+
+.agentflow-footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 50px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+/* ================================
+   HOME RESPONSIVE
+================================ */
+
+@media (max-width: 991px) {
+  .agentflow-hero {
+    padding: 70px 0 80px;
+  }
+
+  .agentflow-product-preview {
+    transform: none;
+  }
+
+  .agentflow-section {
+    padding: 75px 0;
+  }
+
+  .agentflow-metric:nth-child(2) {
+    border-right: none;
+  }
+
+  .agentflow-cta {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 40px;
+  }
+}
+
+@media (max-width: 767px) {
+  .agentflow-hero-title {
+    font-size: 42px;
+    letter-spacing: -1.8px;
+  }
+
+  .agentflow-hero-description {
+    font-size: 16px;
+  }
+
+  .agentflow-hero-points {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .agentflow-canvas-preview {
+    padding: 15px;
+  }
+
+  .agentflow-preview-footer {
+    flex-wrap: wrap;
+  }
+
+  .agentflow-metric {
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .agentflow-metric:nth-child(odd) {
+    border-right: 1px solid #e2e8f0;
+  }
+
+  .agentflow-metric:nth-child(even) {
+    border-right: none;
+  }
+
+  .agentflow-section {
+    padding: 65px 0;
+  }
+
+  .agentflow-section-heading {
+    margin-bottom: 40px;
+  }
+
+  .agentflow-cta {
+    padding: 30px;
+  }
+
+  .agentflow-cta .btn {
+    width: 100%;
+  }
+
+  .agentflow-footer-bottom {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .agentflow-hero-title {
+    font-size: 36px;
+  }
+
+  .agentflow-hero .btn {
+    width: 100%;
+  }
+
+  .agentflow-product-preview {
+    border-radius: 12px;
+  }
+
+  .agentflow-preview-node {
+    padding: 9px;
+  }
+
+  .agentflow-preview-node strong {
+    font-size: 10px;
+  }
+
+  .agentflow-preview-node small {
+    font-size: 8px;
+  }
+
+  .agentflow-condition-heading small {
+    display: none;
+  }
+
+  .agentflow-recruitment-flow {
+    padding: 15px;
+  }
+}
+
+.agentflow-sidebar {
+  width: 260px;
+  min-width: 260px;
+  max-width: 260px;
+  flex: 0 0 260px;
+  flex-shrink: 0;
+  min-height: 100vh;
 }

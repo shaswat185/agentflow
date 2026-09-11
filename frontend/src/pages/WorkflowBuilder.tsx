@@ -364,170 +364,181 @@ const WorkflowBuilder = () => {
   };
 
 
-  const handleRunWorkflow = () => {
-    const validationError = validateWorkflow();
+const handleRunWorkflow = () => {
+  const validationError = validateWorkflow();
 
-    if (validationError) {
-      window.alert(validationError);
-      return;
-    }
+  if (validationError) {
+    window.alert(validationError);
+    return;
+  }
 
-    setIsRunning(true);
-    setExecutionLog([]);
+  setIsRunning(true);
+  setExecutionLog([]);
 
-    setNodes((currentNodes) =>
-      currentNodes.map((node) => ({
-        ...node,
-        data: {
-          ...node.data,
-          executionStatus: "waiting",
-        },
-      }))
+  setNodes((currentNodes) =>
+    currentNodes.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        executionStatus: "waiting",
+      },
+    }))
+  );
+
+  const executionOrder: string[] = [];
+  const skippedNodeIds = new Set<string>();
+
+  let currentNodeId =
+    nodes.find(
+      (node) => node.data.nodeType === "trigger"
+    )?.id ?? null;
+
+  while (currentNodeId) {
+    executionOrder.push(currentNodeId);
+
+    const currentNode = nodes.find(
+      (node) => node.id === currentNodeId
     );
 
-    const executionOrder: string[] = [];
-
-    let currentNodeId =
-      nodes.find(
-        (node) => node.data.nodeType === "trigger"
-      )?.id ?? null;
-
-    while (currentNodeId) {
-      executionOrder.push(currentNodeId);
-
-      const currentNode = nodes.find(
-        (node) => node.id === currentNodeId
-      );
-
-      if (!currentNode) {
-        break;
-      }
-
-      const outgoingEdges = edges.filter(
-        (edge) => edge.source === currentNodeId
-      );
-
-      let nextEdge: Edge | undefined;
-
-      if (
-        currentNode.data.nodeType === "condition"
-      ) {
-        const candidateScore = 82;
-
-        const conditionValue = Number(
-          currentNode.data.conditionValue ?? 70
-        );
-
-        const operator =
-          currentNode.data.conditionOperator ?? ">=";
-
-        let conditionResult = false;
-
-        switch (operator) {
-          case ">=":
-            conditionResult =
-              candidateScore >= conditionValue;
-            break;
-
-          case ">":
-            conditionResult =
-              candidateScore > conditionValue;
-            break;
-
-          case "=":
-            conditionResult =
-              candidateScore === conditionValue;
-            break;
-
-          case "<":
-            conditionResult =
-              candidateScore < conditionValue;
-            break;
-
-          case "<=":
-            conditionResult =
-              candidateScore <= conditionValue;
-            break;
-        }
-
-        const branchHandle = conditionResult
-          ? "yes"
-          : "no";
-
-        nextEdge = outgoingEdges.find(
-          (edge) =>
-            edge.sourceHandle === branchHandle
-        );
-      } else {
-        nextEdge = outgoingEdges[0];
-      }
-
-      currentNodeId =
-        nextEdge?.target ?? null;
+    if (!currentNode) {
+      break;
     }
 
-
-    setExecutionLog(
-      executionOrder.map((nodeId) => {
-        const node = nodes.find((currentNode) => currentNode.id === nodeId);
-
-        return {
-          nodeId,
-          nodeLabel: node?.data.label ?? "Unknown Node",
-          status: "running",
-        };
-      })
+    const outgoingEdges = edges.filter(
+      (edge) => edge.source === currentNodeId
     );
 
-    executionOrder.forEach((nodeId, index) => {
-      window.setTimeout(() => {
-        setNodes((currentNodes) =>
-          currentNodes.map((node) =>
-            node.id === nodeId
-              ? {
+    let nextEdge: Edge | undefined;
+
+    if (currentNode.data.nodeType === "condition") {
+      const candidateScore = 82;
+
+      const conditionValue = Number(
+        currentNode.data.conditionValue ?? 70
+      );
+
+      const operator =
+        currentNode.data.conditionOperator ?? ">=";
+
+      let conditionResult = false;
+
+      switch (operator) {
+        case ">=":
+          conditionResult = candidateScore >= conditionValue;
+          break;
+        case ">":
+          conditionResult = candidateScore > conditionValue;
+          break;
+        case "=":
+          conditionResult = candidateScore === conditionValue;
+          break;
+        case "<":
+          conditionResult = candidateScore < conditionValue;
+          break;
+        case "<=":
+          conditionResult = candidateScore <= conditionValue;
+          break;
+      }
+
+      const selectedHandle = conditionResult ? "yes" : "no";
+      const skippedHandle = conditionResult ? "no" : "yes";
+
+      const selectedEdge = outgoingEdges.find(
+        (edge) => edge.sourceHandle === selectedHandle
+      );
+
+      const skippedEdge = outgoingEdges.find(
+        (edge) => edge.sourceHandle === skippedHandle
+      );
+
+      if (skippedEdge) {
+        skippedNodeIds.add(skippedEdge.target);
+      }
+
+      nextEdge = selectedEdge;
+    } else {
+      nextEdge = outgoingEdges[0];
+    }
+
+    currentNodeId = nextEdge?.target ?? null;
+  }
+
+  const logEntries = nodes
+    .filter(
+      (node) =>
+        executionOrder.includes(node.id) ||
+        skippedNodeIds.has(node.id)
+    )
+    .map((node) => ({
+      nodeId: node.id,
+      nodeLabel: node.data.label,
+      status: skippedNodeIds.has(node.id)
+        ? ("skipped" as const)
+        : ("running" as const),
+    }));
+
+  setExecutionLog(logEntries);
+
+  executionOrder.forEach((nodeId, index) => {
+    window.setTimeout(() => {
+      setNodes((currentNodes) =>
+        currentNodes.map((node) =>
+          node.id === nodeId
+            ? {
                 ...node,
                 data: {
                   ...node.data,
                   executionStatus: "running",
                 },
               }
-              : node
-          )
-        );
-      }, index * 1200);
+            : node
+        )
+      );
 
-     window.setTimeout(() => {
-  setNodes((currentNodes) =>
-    currentNodes.map((node) =>
-      node.id === nodeId
-        ? {
-            ...node,
-            data: {
-              ...node.data,
-              executionStatus: "completed",
-            },
-          }
-        : node
-    )
-  );
+      setExecutionLog((currentLog) =>
+        currentLog.map((log) =>
+          log.nodeId === nodeId
+            ? {
+                ...log,
+                status: "running",
+              }
+            : log
+        )
+      );
+    }, index * 1200);
 
-  setExecutionLog((currentLog) =>
-    currentLog.map((log) =>
-      log.nodeId === nodeId
-        ? { ...log, status: "completed" }
-        : log
-    )
-  );
-}, index * 1200 + 800);
-    });
+    window.setTimeout(() => {
+      setNodes((currentNodes) =>
+        currentNodes.map((node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  executionStatus: "completed",
+                },
+              }
+            : node
+        )
+      );
 
-    window.setTimeout(
-      () => {
-        setIsRunning(false);
-      },
-      executionOrder.length * 1200
-    );
-  };
+      setExecutionLog((currentLog) =>
+        currentLog.map((log) =>
+          log.nodeId === nodeId
+            ? {
+                ...log,
+                status: "completed",
+              }
+            : log
+        )
+      );
+    }, index * 1200 + 800);
+  });
+
+  window.setTimeout(() => {
+    setIsRunning(false);
+  }, executionOrder.length * 1200);
+};
 
   const handleSaveDraft = () => {
     const workflow = {

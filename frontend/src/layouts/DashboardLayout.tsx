@@ -7,10 +7,10 @@ const DashboardLayout = () => {
     <div className="d-flex min-vh-100 bg-light">
       <Sidebar />
 
-      <div className="flex-grow-1">
+      <div className="flex-grow-1 d-flex flex-column min-vh-100">
         <Topbar />
 
-        <main className="p-4">
+        <main className="flex-grow-1 p-4">
           <Outlet />
         </main>
       </div>

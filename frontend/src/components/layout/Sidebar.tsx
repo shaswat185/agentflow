@@ -38,7 +38,7 @@ const Sidebar = () => {
 
   return (
     <aside
-      className="bg-dark text-white d-flex flex-column"
+      className=" agentflow-sidebar bg-dark text-white d-flex flex-column"
       style={{ width: "250px", minHeight: "100vh" }}
     >
       <div className="p-4 border-bottom border-secondary">
