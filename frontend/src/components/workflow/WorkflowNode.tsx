@@ -8,6 +8,7 @@ type WorkflowNodeData = {
   label: string;
   description?: string;
   nodeType?: string;
+  executionStatus?: "waiting" | "running" | "completed" | "failed";
   onDelete?: () => void;
 };
 
@@ -15,6 +16,7 @@ const WorkflowNode = ({
   data,
 }: NodeProps<WorkflowNodeData>) => {
   const isCondition = data.nodeType === "condition";
+  const executionStatus = data.executionStatus ?? "waiting";
 
   const getNodeIcon = () => {
     switch (data.nodeType) {
@@ -61,12 +63,12 @@ const WorkflowNode = ({
 
   return (
     <div
-      className="workflow-node"
-      style={{
-        width: "250px",
-        position: "relative",
-      }}
-    >
+  className={`workflow-node workflow-node-${executionStatus}`}
+  style={{
+    width: "250px",
+    position: "relative",
+  }}
+>
       <Handle
         type="target"
         position={Position.Left}
@@ -97,14 +99,31 @@ const WorkflowNode = ({
       </div>
 
       <div className="workflow-node-body">
-        <div className="workflow-node-title">
-          {data.label}
-        </div>
+  <div className="workflow-node-title">
+    {data.label}
+  </div>
 
-        <div className="workflow-node-description">
-          {data.description || "Workflow node"}
-        </div>
-      </div>
+  <div className="workflow-node-description">
+    {data.description || "Workflow node"}
+  </div>
+
+  {executionStatus !== "waiting" && (
+    <div className="workflow-node-status">
+      <span className="workflow-node-status-dot" />
+
+      <span>
+        {executionStatus === "running" &&
+          "Running"}
+
+        {executionStatus === "completed" &&
+          "Completed"}
+
+        {executionStatus === "failed" &&
+          "Failed"}
+      </span>
+    </div>
+  )}
+</div>
 
       {isCondition ? (
         <>
