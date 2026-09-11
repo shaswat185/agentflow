@@ -1238,3 +1238,91 @@ a {
     box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
   }
 }
+
+
+.execution-log-panel {
+  margin-top: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.execution-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.execution-log-header h6 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.execution-log-count {
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.execution-log-empty {
+  padding: 24px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.execution-log-list {
+  padding: 6px 0;
+}
+
+.execution-log-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.execution-log-item:last-child {
+  border-bottom: none;
+}
+
+.execution-log-status {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.execution-log-status-running {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.execution-log-status-completed {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.execution-log-status-skipped {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.execution-log-node {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+}

@@ -77,6 +77,14 @@ const WorkflowBuilder = () => {
 
   const [isRunning, setIsRunning] = useState(false);
 
+  const [executionLog, setExecutionLog] = useState<
+    {
+      nodeId: string;
+      nodeLabel: string;
+      status: "running" | "completed" | "skipped";
+    }[]
+  >([]);
+
   const handleConnect = useCallback(
     (connection: Connection) => {
       if (!connection.source || !connection.target) {
@@ -356,148 +364,170 @@ const WorkflowBuilder = () => {
   };
 
 
-const handleRunWorkflow = () => {
-  const validationError = validateWorkflow();
+  const handleRunWorkflow = () => {
+    const validationError = validateWorkflow();
 
-  if (validationError) {
-    window.alert(validationError);
-    return;
-  }
-
-  setIsRunning(true);
-
-  setNodes((currentNodes) =>
-    currentNodes.map((node) => ({
-      ...node,
-      data: {
-        ...node.data,
-        executionStatus: "waiting",
-      },
-    }))
-  );
-
-  const executionOrder: string[] = [];
-
-  let currentNodeId =
-    nodes.find(
-      (node) => node.data.nodeType === "trigger"
-    )?.id ?? null;
-
-  while (currentNodeId) {
-    executionOrder.push(currentNodeId);
-
-    const currentNode = nodes.find(
-      (node) => node.id === currentNodeId
-    );
-
-    if (!currentNode) {
-      break;
+    if (validationError) {
+      window.alert(validationError);
+      return;
     }
 
-    const outgoingEdges = edges.filter(
-      (edge) => edge.source === currentNodeId
+    setIsRunning(true);
+    setExecutionLog([]);
+
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          executionStatus: "waiting",
+        },
+      }))
     );
 
-    let nextEdge: Edge | undefined;
+    const executionOrder: string[] = [];
 
-    if (
-      currentNode.data.nodeType === "condition"
-    ) {
-      const candidateScore = 82;
+    let currentNodeId =
+      nodes.find(
+        (node) => node.data.nodeType === "trigger"
+      )?.id ?? null;
 
-      const conditionValue = Number(
-        currentNode.data.conditionValue ?? 70
+    while (currentNodeId) {
+      executionOrder.push(currentNodeId);
+
+      const currentNode = nodes.find(
+        (node) => node.id === currentNodeId
       );
 
-      const operator =
-        currentNode.data.conditionOperator ?? ">=";
-
-      let conditionResult = false;
-
-      switch (operator) {
-        case ">=":
-          conditionResult =
-            candidateScore >= conditionValue;
-          break;
-
-        case ">":
-          conditionResult =
-            candidateScore > conditionValue;
-          break;
-
-        case "=":
-          conditionResult =
-            candidateScore === conditionValue;
-          break;
-
-        case "<":
-          conditionResult =
-            candidateScore < conditionValue;
-          break;
-
-        case "<=":
-          conditionResult =
-            candidateScore <= conditionValue;
-          break;
+      if (!currentNode) {
+        break;
       }
 
-      const branchHandle = conditionResult
-        ? "yes"
-        : "no";
-
-      nextEdge = outgoingEdges.find(
-        (edge) =>
-          edge.sourceHandle === branchHandle
+      const outgoingEdges = edges.filter(
+        (edge) => edge.source === currentNodeId
       );
-    } else {
-      nextEdge = outgoingEdges[0];
+
+      let nextEdge: Edge | undefined;
+
+      if (
+        currentNode.data.nodeType === "condition"
+      ) {
+        const candidateScore = 82;
+
+        const conditionValue = Number(
+          currentNode.data.conditionValue ?? 70
+        );
+
+        const operator =
+          currentNode.data.conditionOperator ?? ">=";
+
+        let conditionResult = false;
+
+        switch (operator) {
+          case ">=":
+            conditionResult =
+              candidateScore >= conditionValue;
+            break;
+
+          case ">":
+            conditionResult =
+              candidateScore > conditionValue;
+            break;
+
+          case "=":
+            conditionResult =
+              candidateScore === conditionValue;
+            break;
+
+          case "<":
+            conditionResult =
+              candidateScore < conditionValue;
+            break;
+
+          case "<=":
+            conditionResult =
+              candidateScore <= conditionValue;
+            break;
+        }
+
+        const branchHandle = conditionResult
+          ? "yes"
+          : "no";
+
+        nextEdge = outgoingEdges.find(
+          (edge) =>
+            edge.sourceHandle === branchHandle
+        );
+      } else {
+        nextEdge = outgoingEdges[0];
+      }
+
+      currentNodeId =
+        nextEdge?.target ?? null;
     }
 
-    currentNodeId =
-      nextEdge?.target ?? null;
-  }
 
-  executionOrder.forEach((nodeId, index) => {
-    window.setTimeout(() => {
-      setNodes((currentNodes) =>
-        currentNodes.map((node) =>
-          node.id === nodeId
-            ? {
+    setExecutionLog(
+      executionOrder.map((nodeId) => {
+        const node = nodes.find((currentNode) => currentNode.id === nodeId);
+
+        return {
+          nodeId,
+          nodeLabel: node?.data.label ?? "Unknown Node",
+          status: "running",
+        };
+      })
+    );
+
+    executionOrder.forEach((nodeId, index) => {
+      window.setTimeout(() => {
+        setNodes((currentNodes) =>
+          currentNodes.map((node) =>
+            node.id === nodeId
+              ? {
                 ...node,
                 data: {
                   ...node.data,
                   executionStatus: "running",
                 },
               }
-            : node
-        )
-      );
-    }, index * 1200);
+              : node
+          )
+        );
+      }, index * 1200);
 
-    window.setTimeout(() => {
-      setNodes((currentNodes) =>
-        currentNodes.map((node) =>
-          node.id === nodeId
-            ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  executionStatus: "completed",
-                },
-              }
-            : node
-        )
-      );
-    }, index * 1200 + 800);
-  });
-
-  window.setTimeout(
-    () => {
-      setIsRunning(false);
-    },
-    executionOrder.length * 1200
+     window.setTimeout(() => {
+  setNodes((currentNodes) =>
+    currentNodes.map((node) =>
+      node.id === nodeId
+        ? {
+            ...node,
+            data: {
+              ...node.data,
+              executionStatus: "completed",
+            },
+          }
+        : node
+    )
   );
-};
+
+  setExecutionLog((currentLog) =>
+    currentLog.map((log) =>
+      log.nodeId === nodeId
+        ? { ...log, status: "completed" }
+        : log
+    )
+  );
+}, index * 1200 + 800);
+    });
+
+    window.setTimeout(
+      () => {
+        setIsRunning(false);
+      },
+      executionOrder.length * 1200
+    );
+  };
 
   const handleSaveDraft = () => {
     const workflow = {
@@ -671,7 +701,57 @@ const handleRunWorkflow = () => {
               onConnect={handleConnect}
               onNodeClick={handleNodeClick}
             />
+            <div className="execution-log-panel">
+  <div className="execution-log-header">
+    <div>
+      <h6 className="mb-1">Execution Log</h6>
+      <small className="text-muted">
+        Workflow execution history
+      </small>
+    </div>
+
+    {executionLog.length > 0 && (
+      <span className="execution-log-count">
+        {executionLog.length} nodes
+      </span>
+    )}
+  </div>
+
+  {executionLog.length === 0 ? (
+    <div className="execution-log-empty">
+      Run the workflow to see execution details.
+    </div>
+  ) : (
+    <div className="execution-log-list">
+      {executionLog.map((log) => (
+        <div
+          key={log.nodeId}
+          className="execution-log-item"
+        >
+          <div
+            className={`execution-log-status execution-log-status-${log.status}`}
+          >
+            {log.status === "running" && "●"}
+            {log.status === "completed" && "✓"}
+            {log.status === "skipped" && "−"}
           </div>
+
+          <div className="flex-grow-1">
+            <div className="execution-log-node">
+              {log.nodeLabel}
+            </div>
+
+            <small className="text-muted text-capitalize">
+              {log.status}
+            </small>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+          </div>
+          
         </div>
 
         {showConfigPanel && (
