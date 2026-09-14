@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import apiRoutes from "./routes/index.js";
+
 
 const app = express();
 
@@ -11,5 +13,8 @@ app.get("/", (_req, res) => {
     message: "AgentFlow backend is running",
   });
 });
+
+app.use("/api", apiRoutes);
+
 
 export default app;

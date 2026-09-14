@@ -18,6 +18,7 @@ import {
 import WorkflowCanvas from "../components/workflow/WorkflowCanvas";
 import NodePanel from "../components/workflow/NodePanel";
 import NodeConfigPanel from "../components/workflow/NodeConfigPanel";
+import { createWorkflow } from "../services/workflowService";
 
 const initialNodes: Node[] = [
   {
@@ -899,25 +900,34 @@ const WorkflowBuilder = () => {
     );
   };
 
-  const handleSaveDraft = () => {
-    const draft: WorkflowDraft =
-      {
-        workflowName,
-        nodes,
-        edges,
-        testCandidateScore,
-      };
+const handleSaveDraft = async () => {
+  try {
+    const draft: WorkflowDraft = {
+      workflowName,
+      nodes,
+      edges,
+      testCandidateScore,
+    };
 
     localStorage.setItem(
       `agentflow-workflow-draft-${id ?? "new"}`,
       JSON.stringify(draft)
     );
 
-    window.alert(
-      "Draft saved successfully."
-    );
-  };
+    await createWorkflow({
+      name: workflowName,
+      description: "Recruitment automation workflow",
+      nodes,
+      edges,
+      status: "draft",
+    });
 
+    window.alert("Draft saved successfully.");
+  } catch (error) {
+    console.error("Failed to save workflow:", error);
+    window.alert("Failed to save workflow to backend.");
+  }
+};
   useEffect(() => {
     const savedDraft =
       localStorage.getItem(
