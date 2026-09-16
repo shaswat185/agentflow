@@ -47,12 +47,20 @@ export const registerUser = async (
                 role: user.role,
             },
         });
-    } catch (error) {
-        console.error("Registration error:", error);
+    } catch (error: any) {
+        console.error("Register error:", error);
+
+        if (error.code === 11000) {
+            res.status(409).json({
+                success: false,
+                message: "Email already registered",
+            });
+            return;
+        }
 
         res.status(500).json({
             success: false,
-            message: "Failed to register user",
+            message: "Registration failed",
         });
     }
 };

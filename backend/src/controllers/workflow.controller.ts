@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Workflow from "../models/workflow.model.js";
+import mongoose from "mongoose";
 
 export const createWorkflow = async (
   req: Request,
@@ -64,13 +65,21 @@ export const getWorkflows = async (
 
 
 
-
 export const getWorkflowById = async (
+
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid workflow ID",
+      });
+      return;
+    }
 
     const workflow = await Workflow.findById(id);
 
@@ -104,6 +113,15 @@ export const updateWorkflow = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+  res.status(400).json({
+    success: false,
+    message: "Invalid workflow ID",
+  });
+  return;
+}
+
     const { name, description, nodes, edges, status } = req.body;
 
     const workflow = await Workflow.findByIdAndUpdate(
@@ -152,6 +170,16 @@ export const deleteWorkflow = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+  res.status(400).json({
+    success: false,
+    message: "Invalid workflow ID",
+  });
+  return;
+}
+
 
     const workflow = await Workflow.findByIdAndDelete(id);
 
