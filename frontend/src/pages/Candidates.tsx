@@ -1,135 +1,171 @@
 import { useEffect, useMemo, useState } from "react";
 
-type CandidateStatus =
+import {
+  getCandidates,
+  createCandidate,
+  updateCandidate,
+  deleteCandidate,
+  type Candidate as ApiCandidate,
+  type CandidateStatus,
+} from "../services/candidateService";
+
+import {
+  getJobs,
+  type Job,
+} from "../services/jobService";
+
+type DisplayStatus =
   | "New"
   | "Screening"
   | "Shortlisted"
   | "Interview"
   | "Rejected";
 
-type Candidate = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  job: string;
-  score: number;
-  status: CandidateStatus;
-  experience: string;
-  skills: string;
-  createdAt: string;
+type Candidate = ApiCandidate & {
+  displayStatus: DisplayStatus;
 };
 
-const STORAGE_KEY = "agentflow-candidates";
-
-const initialCandidates: Candidate[] = [
-  {
-    id: "candidate-1",
-    name: "Rahul Sharma",
-    email: "rahul.sharma@example.com",
-    phone: "+91 98765 43210",
-    job: "Senior React Developer",
-    score: 92,
-    status: "Shortlisted",
-    experience: "4 years",
-    skills: "React, TypeScript, Node.js",
-    createdAt: "Today",
-  },
-  {
-    id: "candidate-2",
-    name: "Priya Singh",
-    email: "priya.singh@example.com",
-    phone: "+91 98765 12345",
-    job: "Full-Stack Developer",
-    score: 84,
-    status: "Interview",
-    experience: "3 years",
-    skills: "React, Node.js, MongoDB",
-    createdAt: "Yesterday",
-  },
-  {
-    id: "candidate-3",
-    name: "Aman Verma",
-    email: "aman.verma@example.com",
-    phone: "+91 99887 66554",
-    job: "Frontend Developer",
-    score: 68,
-    status: "Screening",
-    experience: "2 years",
-    skills: "JavaScript, React, Bootstrap",
-    createdAt: "2 days ago",
-  },
-];
-
 const Candidates = () => {
-  const [candidates, setCandidates] =
-    useState<Candidate[]>(initialCandidates);
+  const [candidates, setCandidates] = useState<
+    ApiCandidate[]
+  >([]);
+
+  const [jobs, setJobs] = useState<Job[]>([]);
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] =
+    useState("All");
 
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] =
+    useState(false);
+
   const [editingCandidate, setEditingCandidate] =
-    useState<Candidate | null>(null);
+    useState<ApiCandidate | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [error, setError] = useState("");
 
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
-    job: "",
+    jobId: "",
     score: 70,
-    status: "New" as CandidateStatus,
+    status: "new" as CandidateStatus,
     experience: "",
     skills: "",
   });
 
-  useEffect(() => {
-    const savedCandidates = localStorage.getItem(STORAGE_KEY);
-
-    if (!savedCandidates) return;
-
+  const loadData = async () => {
     try {
-      const parsed = JSON.parse(savedCandidates);
+      setLoading(true);
+      setError("");
 
-      if (Array.isArray(parsed)) {
-        setCandidates(parsed);
-      }
+      const [candidateData, jobData] =
+        await Promise.all([
+          getCandidates(),
+          getJobs(),
+        ]);
+
+      setCandidates(candidateData);
+      setJobs(jobData);
     } catch (error) {
-      console.error("Failed to load candidates:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load candidates"
+      );
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(candidates));
-  }, [candidates]);
+  const getDisplayStatus = (
+    status: CandidateStatus
+  ): DisplayStatus => {
+    switch (status) {
+      case "screening":
+        return "Screening";
+
+      case "shortlisted":
+        return "Shortlisted";
+
+      case "interview":
+        return "Interview";
+
+      case "rejected":
+        return "Rejected";
+
+      case "pending":
+      case "new":
+      default:
+        return "New";
+    }
+  };
+
+  const getJobTitle = (
+    candidate: ApiCandidate
+  ) => {
+    return candidate.jobId?.title || "No job assigned";
+  };
 
   const filteredCandidates = useMemo(() => {
     return candidates.filter((candidate) => {
-      const searchValue = search.toLowerCase().trim();
+      const searchValue =
+        search.toLowerCase().trim();
+
+      const jobTitle =
+        getJobTitle(candidate).toLowerCase();
+
+      const skills =
+        (candidate.skills || [])
+          .join(", ")
+          .toLowerCase();
 
       const matchesSearch =
         !searchValue ||
-        candidate.name.toLowerCase().includes(searchValue) ||
-        candidate.email.toLowerCase().includes(searchValue) ||
-        candidate.job.toLowerCase().includes(searchValue) ||
-        candidate.skills.toLowerCase().includes(searchValue);
+        candidate.name
+          .toLowerCase()
+          .includes(searchValue) ||
+        candidate.email
+          .toLowerCase()
+          .includes(searchValue) ||
+        jobTitle.includes(searchValue) ||
+        skills.includes(searchValue);
 
       const matchesStatus =
         statusFilter === "All" ||
-        candidate.status === statusFilter;
+        getDisplayStatus(candidate.status) ===
+          statusFilter;
 
-      return matchesSearch && matchesStatus;
+      return (
+        matchesSearch &&
+        matchesStatus
+      );
     });
-  }, [candidates, search, statusFilter]);
+  }, [
+    candidates,
+    search,
+    statusFilter,
+  ]);
 
   const resetForm = () => {
     setForm({
       name: "",
       email: "",
       phone: "",
-      job: "",
+      jobId: "",
       score: 70,
-      status: "New",
+      status: "new",
       experience: "",
       skills: "",
     });
@@ -142,18 +178,26 @@ const Candidates = () => {
     setShowModal(true);
   };
 
-  const openEditModal = (candidate: Candidate) => {
+  const openEditModal = (
+    candidate: ApiCandidate
+  ) => {
     setEditingCandidate(candidate);
 
     setForm({
       name: candidate.name,
       email: candidate.email,
-      phone: candidate.phone,
-      job: candidate.job,
-      score: candidate.score,
-      status: candidate.status,
-      experience: candidate.experience,
-      skills: candidate.skills,
+      phone: candidate.phone || "",
+      jobId: candidate.jobId?._id || "",
+      score:
+        candidate.screeningScore ?? 70,
+      status:
+        candidate.status === "pending"
+          ? "new"
+          : candidate.status,
+      experience:
+        candidate.experience || "",
+      skills:
+        (candidate.skills || []).join(", "),
     });
 
     setShowModal(true);
@@ -174,53 +218,112 @@ const Candidates = () => {
     }));
   };
 
-  const handleSaveCandidate = () => {
-    if (
-      !form.name.trim() ||
-      !form.email.trim() ||
-      !form.job.trim()
-    ) {
-      window.alert("Name, email and job are required.");
-      return;
-    }
+  const handleSaveCandidate =
+    async () => {
+      if (
+        !form.name.trim() ||
+        !form.email.trim()
+      ) {
+        setError(
+          "Name and email are required."
+        );
+        return;
+      }
 
-    if (editingCandidate) {
-      setCandidates((current) =>
-        current.map((candidate) =>
-          candidate.id === editingCandidate.id
-            ? {
-                ...candidate,
-                ...form,
-              }
-            : candidate
-        )
-      );
-    } else {
-      const newCandidate: Candidate = {
-        id: `candidate-${Date.now()}`,
-        ...form,
-        createdAt: "Just now",
-      };
+      try {
+        setSaving(true);
+        setError("");
 
-      setCandidates((current) => [newCandidate, ...current]);
-    }
+        const payload = {
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          jobId: form.jobId || undefined,
+          experience:
+            form.experience.trim(),
+          skills: form.skills
+            .split(",")
+            .map((skill) => skill.trim())
+            .filter(Boolean),
+          screeningScore: form.score,
+          status: form.status,
+        };
 
-    closeModal();
-  };
+        if (editingCandidate) {
+          const updated =
+            await updateCandidate(
+              editingCandidate._id,
+              payload
+            );
 
-  const handleDeleteCandidate = (candidate: Candidate) => {
-    const confirmed = window.confirm(
-      `Delete candidate "${candidate.name}"?`
-    );
+          setCandidates((current) =>
+            current.map((candidate) =>
+              candidate._id ===
+              editingCandidate._id
+                ? updated
+                : candidate
+            )
+          );
+        } else {
+          const created =
+            await createCandidate(payload);
 
-    if (!confirmed) return;
+          setCandidates((current) => [
+            created,
+            ...current,
+          ]);
+        }
 
-    setCandidates((current) =>
-      current.filter((item) => item.id !== candidate.id)
-    );
-  };
+        closeModal();
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to save candidate"
+        );
+      } finally {
+        setSaving(false);
+      }
+    };
 
-  const getStatusClass = (status: CandidateStatus) => {
+  const handleDeleteCandidate =
+    async (
+      candidate: ApiCandidate
+    ) => {
+      const confirmed =
+        window.confirm(
+          `Delete candidate "${candidate.name}"?`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        setError("");
+
+        await deleteCandidate(
+          candidate._id
+        );
+
+        setCandidates((current) =>
+          current.filter(
+            (item) =>
+              item._id !== candidate._id
+          )
+        );
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to delete candidate"
+        );
+      }
+    };
+
+  const getStatusClass = (
+    status: DisplayStatus
+  ) => {
     switch (status) {
       case "Shortlisted":
         return "bg-success-subtle text-success";
@@ -239,7 +342,9 @@ const Candidates = () => {
     }
   };
 
-  const getScoreClass = (score: number) => {
+  const getScoreClass = (
+    score: number
+  ) => {
     if (score >= 80) {
       return "text-success";
     }
@@ -256,10 +361,13 @@ const Candidates = () => {
       {/* HEADER */}
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-          <h2 className="fw-bold mb-1">Candidates</h2>
+          <h2 className="fw-bold mb-1">
+            Candidates
+          </h2>
 
           <p className="text-secondary mb-0">
-            Manage candidates and track their recruitment progress.
+            Manage candidates and track
+            their recruitment progress.
           </p>
         </div>
 
@@ -271,6 +379,13 @@ const Candidates = () => {
           + Add Candidate
         </button>
       </div>
+
+      {/* ERROR */}
+      {error && (
+        <div className="alert alert-danger">
+          {error}
+        </div>
+      )}
 
       {/* STATS */}
       <div className="row g-3 mb-4">
@@ -299,7 +414,8 @@ const Candidates = () => {
                 {
                   candidates.filter(
                     (candidate) =>
-                      candidate.status === "Shortlisted"
+                      candidate.status ===
+                      "shortlisted"
                   ).length
                 }
               </div>
@@ -318,7 +434,8 @@ const Candidates = () => {
                 {
                   candidates.filter(
                     (candidate) =>
-                      candidate.status === "Interview"
+                      candidate.status ===
+                      "interview"
                   ).length
                 }
               </div>
@@ -337,10 +454,16 @@ const Candidates = () => {
                 {candidates.length > 0
                   ? Math.round(
                       candidates.reduce(
-                        (total, candidate) =>
-                          total + candidate.score,
+                        (
+                          total,
+                          candidate
+                        ) =>
+                          total +
+                          (candidate.screeningScore ??
+                            0),
                         0
-                      ) / candidates.length
+                      ) /
+                        candidates.length
                     )
                   : 0}
               </div>
@@ -360,7 +483,9 @@ const Candidates = () => {
                 placeholder="Search candidates, email, job or skills..."
                 value={search}
                 onChange={(event) =>
-                  setSearch(event.target.value)
+                  setSearch(
+                    event.target.value
+                  )
                 }
               />
             </div>
@@ -370,15 +495,29 @@ const Candidates = () => {
                 className="form-select"
                 value={statusFilter}
                 onChange={(event) =>
-                  setStatusFilter(event.target.value)
+                  setStatusFilter(
+                    event.target.value
+                  )
                 }
               >
-                <option value="All">All Statuses</option>
-                <option value="New">New</option>
-                <option value="Screening">Screening</option>
-                <option value="Shortlisted">Shortlisted</option>
-                <option value="Interview">Interview</option>
-                <option value="Rejected">Rejected</option>
+                <option value="All">
+                  All Statuses
+                </option>
+                <option value="New">
+                  New
+                </option>
+                <option value="Screening">
+                  Screening
+                </option>
+                <option value="Shortlisted">
+                  Shortlisted
+                </option>
+                <option value="Interview">
+                  Interview
+                </option>
+                <option value="Rejected">
+                  Rejected
+                </option>
               </select>
             </div>
           </div>
@@ -388,26 +527,40 @@ const Candidates = () => {
       {/* CANDIDATES */}
       <div className="card border-0 shadow-sm">
         <div className="card-header bg-white border-0 py-3">
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h5 className="mb-1">Candidate Pipeline</h5>
+          <h5 className="mb-1">
+            Candidate Pipeline
+          </h5>
 
-              <div className="small text-secondary">
-                {filteredCandidates.length} candidate
-                {filteredCandidates.length !== 1 ? "s" : ""}
-              </div>
-            </div>
+          <div className="small text-secondary">
+            {filteredCandidates.length} candidate
+            {filteredCandidates.length !== 1
+              ? "s"
+              : ""}
           </div>
         </div>
 
-        {filteredCandidates.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-5">
+            <div
+              className="spinner-border"
+              role="status"
+            />
+            <p className="text-secondary mt-3">
+              Loading candidates...
+            </p>
+          </div>
+        ) : filteredCandidates.length ===
+          0 ? (
           <div className="text-center py-5 px-3">
-            <div className="fs-1 mb-2">👤</div>
+            <div className="fs-1 mb-2">
+              👤
+            </div>
 
             <h5>No candidates found</h5>
 
             <p className="text-secondary mb-3">
-              Try changing your search or add a new candidate.
+              Try changing your search or
+              add a new candidate.
             </p>
 
             <button
@@ -423,93 +576,129 @@ const Candidates = () => {
             <table className="table align-middle mb-0">
               <thead className="table-light">
                 <tr>
-                  <th className="ps-4">Candidate</th>
+                  <th className="ps-4">
+                    Candidate
+                  </th>
                   <th>Job</th>
                   <th>Score</th>
                   <th>Status</th>
                   <th>Experience</th>
                   <th>Added</th>
-                  <th className="text-end pe-4">Actions</th>
+                  <th className="text-end pe-4">
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredCandidates.map((candidate) => (
-                  <tr key={candidate.id}>
-                    <td className="ps-4">
-                      <div className="fw-semibold">
-                        {candidate.name}
-                      </div>
+                {filteredCandidates.map(
+                  (candidate) => {
+                    const displayStatus =
+                      getDisplayStatus(
+                        candidate.status
+                      );
 
-                      <div className="small text-secondary">
-                        {candidate.email}
-                      </div>
-                    </td>
-
-                    <td>
-                      <div className="fw-medium">
-                        {candidate.job}
-                      </div>
-
-                      <div className="small text-secondary">
-                        {candidate.skills}
-                      </div>
-                    </td>
-
-                    <td>
-                      <span
-                        className={`fw-bold ${getScoreClass(
-                          candidate.score
-                        )}`}
+                    return (
+                      <tr
+                        key={
+                          candidate._id
+                        }
                       >
-                        {candidate.score}
-                      </span>
-                        <span className="text-secondary">
-                          /100
-                        </span>
-                    </td>
+                        <td className="ps-4">
+                          <div className="fw-semibold">
+                            {candidate.name}
+                          </div>
 
-                    <td>
-                      <span
-                        className={`badge ${getStatusClass(
-                          candidate.status
-                        )}`}
-                      >
-                        {candidate.status}
-                      </span>
-                    </td>
+                          <div className="small text-secondary">
+                            {candidate.email}
+                          </div>
+                        </td>
 
-                    <td>{candidate.experience || "—"}</td>
+                        <td>
+                          <div className="fw-medium">
+                            {getJobTitle(
+                              candidate
+                            )}
+                          </div>
 
-                    <td className="text-secondary">
-                      {candidate.createdAt}
-                    </td>
+                          <div className="small text-secondary">
+                            {(
+                              candidate.skills ||
+                              []
+                            ).join(", ")}
+                          </div>
+                        </td>
 
-                    <td className="text-end pe-4">
-                      <div className="d-flex justify-content-end gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-secondary"
-                          onClick={() =>
-                            openEditModal(candidate)
-                          }
-                        >
-                          Edit
-                        </button>
+                        <td>
+                          <span
+                            className={`fw-bold ${getScoreClass(
+                              candidate.screeningScore ??
+                                0
+                            )}`}
+                          >
+                            {candidate.screeningScore ??
+                              0}
+                          </span>
 
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() =>
-                            handleDeleteCandidate(candidate)
-                          }
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <span className="text-secondary">
+                            /100
+                          </span>
+                        </td>
+
+                        <td>
+                          <span
+                            className={`badge ${getStatusClass(
+                              displayStatus
+                            )}`}
+                          >
+                            {displayStatus}
+                          </span>
+                        </td>
+
+                        <td>
+                          {candidate.experience ||
+                            "—"}
+                        </td>
+
+                        <td className="text-secondary">
+                          {candidate.createdAt
+                            ? new Date(
+                                candidate.createdAt
+                              ).toLocaleDateString()
+                            : "—"}
+                        </td>
+
+                        <td className="text-end pe-4">
+                          <div className="d-flex justify-content-end gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={() =>
+                                openEditModal(
+                                  candidate
+                                )
+                              }
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() =>
+                                handleDeleteCandidate(
+                                  candidate
+                                )
+                              }
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+                )}
               </tbody>
             </table>
           </div>
@@ -522,7 +711,10 @@ const Candidates = () => {
           className="modal d-block"
           tabIndex={-1}
           role="dialog"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          style={{
+            backgroundColor:
+              "rgba(0,0,0,0.5)",
+          }}
         >
           <div className="modal-dialog modal-lg modal-dialog-centered">
             <div className="modal-content border-0 shadow">
@@ -535,7 +727,8 @@ const Candidates = () => {
                   </h5>
 
                   <div className="small text-secondary">
-                    Add candidate information to the pipeline.
+                    Add candidate information
+                    to the pipeline.
                   </div>
                 </div>
 
@@ -610,18 +803,29 @@ const Candidates = () => {
                       Job
                     </label>
 
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={form.job}
+                    <select
+                      className="form-select"
+                      value={form.jobId}
                       onChange={(event) =>
                         handleFormChange(
-                          "job",
+                          "jobId",
                           event.target.value
                         )
                       }
-                      placeholder="Frontend Developer"
-                    />
+                    >
+                      <option value="">
+                        Select a job
+                      </option>
+
+                      {jobs.map((job) => (
+                        <option
+                          key={job._id}
+                          value={job._id}
+                        >
+                          {job.title}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="col-12 col-md-4">
@@ -642,7 +846,10 @@ const Candidates = () => {
                             100,
                             Math.max(
                               0,
-                              Number(event.target.value)
+                              Number(
+                                event.target
+                                  .value
+                              )
                             )
                           )
                         )
@@ -666,17 +873,23 @@ const Candidates = () => {
                         )
                       }
                     >
-                      <option value="New">New</option>
-                      <option value="Screening">
+                      <option value="new">
+                        New
+                      </option>
+
+                      <option value="screening">
                         Screening
                       </option>
-                      <option value="Shortlisted">
+
+                      <option value="shortlisted">
                         Shortlisted
                       </option>
-                      <option value="Interview">
+
+                      <option value="interview">
                         Interview
                       </option>
-                      <option value="Rejected">
+
+                      <option value="rejected">
                         Rejected
                       </option>
                     </select>
@@ -690,7 +903,9 @@ const Candidates = () => {
                     <input
                       type="text"
                       className="form-control"
-                      value={form.experience}
+                      value={
+                        form.experience
+                      }
                       onChange={(event) =>
                         handleFormChange(
                           "experience",
@@ -727,6 +942,7 @@ const Candidates = () => {
                   type="button"
                   className="btn btn-light"
                   onClick={closeModal}
+                  disabled={saving}
                 >
                   Cancel
                 </button>
@@ -734,9 +950,14 @@ const Candidates = () => {
                 <button
                   type="button"
                   className="btn btn-dark"
-                  onClick={handleSaveCandidate}
+                  onClick={
+                    handleSaveCandidate
+                  }
+                  disabled={saving}
                 >
-                  {editingCandidate
+                  {saving
+                    ? "Saving..."
+                    : editingCandidate
                     ? "Save Changes"
                     : "Add Candidate"}
                 </button>

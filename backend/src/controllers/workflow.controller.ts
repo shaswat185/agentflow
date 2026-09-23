@@ -7,7 +7,13 @@ export const createWorkflow = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { name, description, nodes, edges, status } = req.body;
+    const {
+      name,
+      description,
+      nodes,
+      edges,
+      status,
+    } = req.body;
 
     if (!name) {
       res.status(400).json({
@@ -31,6 +37,8 @@ export const createWorkflow = async (
       data: workflow,
     });
   } catch (error) {
+    console.error("Create workflow error:", error);
+
     res.status(500).json({
       success: false,
       message: "Failed to create workflow",
@@ -38,16 +46,14 @@ export const createWorkflow = async (
   }
 };
 
-
-
-
-
 export const getWorkflows = async (
   _req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const workflows = await Workflow.find().sort({ createdAt: -1 });
+    const workflows = await Workflow.find().sort({
+      createdAt: -1,
+    });
 
     res.status(200).json({
       success: true,
@@ -63,16 +69,12 @@ export const getWorkflows = async (
   }
 };
 
-
-
 export const getWorkflowById = async (
-
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-
+    const id = String(req.params.id);
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({
         success: false,
@@ -105,34 +107,54 @@ export const getWorkflowById = async (
   }
 };
 
-
-
 export const updateWorkflow = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-  res.status(400).json({
-    success: false,
-    message: "Invalid workflow ID",
-  });
-  return;
-}
+      res.status(400).json({
+        success: false,
+        message: "Invalid workflow ID",
+      });
+      return;
+    }
 
-    const { name, description, nodes, edges, status } = req.body;
+    const {
+      name,
+      description,
+      nodes,
+      edges,
+      status,
+    } = req.body;
+
+    const updateData: Record<string, unknown> = {};
+
+    if (name !== undefined) {
+      updateData.name = name;
+    }
+
+    if (description !== undefined) {
+      updateData.description = description;
+    }
+
+    if (nodes !== undefined) {
+      updateData.nodes = nodes;
+    }
+
+    if (edges !== undefined) {
+      updateData.edges = edges;
+    }
+
+    if (status !== undefined) {
+      updateData.status = status;
+    }
 
     const workflow = await Workflow.findByIdAndUpdate(
       id,
-      {
-        name,
-        description,
-        nodes,
-        edges,
-        status,
-      },
+      updateData,
       {
         new: true,
         runValidators: true,
@@ -162,24 +184,19 @@ export const updateWorkflow = async (
   }
 };
 
-
-
 export const deleteWorkflow = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-
-
+    const id = String(req.params.id);
     if (!mongoose.Types.ObjectId.isValid(id)) {
-  res.status(400).json({
-    success: false,
-    message: "Invalid workflow ID",
-  });
-  return;
-}
-
+      res.status(400).json({
+        success: false,
+        message: "Invalid workflow ID",
+      });
+      return;
+    }
 
     const workflow = await Workflow.findByIdAndDelete(id);
 

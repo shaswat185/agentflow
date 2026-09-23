@@ -1,6 +1,17 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 const Sidebar = () => {
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    navigate("/login");
+  };
+
+
   const navItems = [
     {
       label: "Dashboard",
@@ -31,9 +42,10 @@ const Sidebar = () => {
       path: "/integrations",
     },
     {
-      label: "Settings",
-      path: "/settings",
-    },
+      label: "Logout",
+      path: "/logout",
+      onClick: handleLogout
+    }
   ];
 
   return (
@@ -54,10 +66,9 @@ const Sidebar = () => {
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `d-block text-decoration-none rounded px-3 py-2 mb-2 ${
-                isActive
-                  ? "bg-primary text-white"
-                  : "text-light"
+              `d-block text-decoration-none rounded px-3 py-2 mb-2 ${isActive
+                ? "bg-primary text-white"
+                : "text-light"
               }`
             }
           >
@@ -65,6 +76,19 @@ const Sidebar = () => {
           </NavLink>
         ))}
       </nav>
+
+
+      <div className="p-3 border-top border-secondary">
+        <button
+          type="button"
+          className="btn btn-outline-light w-100"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
+      </div>
+
+      
     </aside>
   );
 };

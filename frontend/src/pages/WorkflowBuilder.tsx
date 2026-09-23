@@ -18,7 +18,17 @@ import {
 import WorkflowCanvas from "../components/workflow/WorkflowCanvas";
 import NodePanel from "../components/workflow/NodePanel";
 import NodeConfigPanel from "../components/workflow/NodeConfigPanel";
-import { createWorkflow } from "../services/workflowService";
+
+import {
+  createWorkflow,
+  updateWorkflow,
+  getWorkflowById,
+} from "../services/workflowService";
+
+import {
+  runWorkflow,
+  type ExecutionStep,
+} from "../services/workflowExecutionService";
 
 const initialNodes: Node[] = [
   {
@@ -58,7 +68,7 @@ const initialNodes: Node[] = [
     data: {
       label: "Candidate Score",
       description: "Calculate candidate score",
-      nodeType: "score",
+      nodeType: "candidate-score",
     },
   },
   {
@@ -71,6 +81,8 @@ const initialNodes: Node[] = [
       nodeType: "condition",
       conditionOperator: ">=",
       conditionValue: 70,
+      operator: ">=",
+      value: 70,
     },
   },
   {
@@ -100,7 +112,7 @@ const initialNodes: Node[] = [
     data: {
       label: "Send Email",
       description: "Send shortlist notification",
-      nodeType: "email",
+      nodeType: "shortlist-email",
     },
   },
   {
@@ -110,7 +122,7 @@ const initialNodes: Node[] = [
     data: {
       label: "Send Email",
       description: "Send rejection notification",
-      nodeType: "email",
+      nodeType: "reject-email",
     },
   },
 ];
@@ -252,6 +264,17 @@ const WorkflowBuilder = () => {
   const [executionCompleted, setExecutionCompleted] =
     useState(false);
 
+  const [executionSteps, setExecutionSteps] =
+    useState<ExecutionStep[]>([]);
+
+  const [executionScore, setExecutionScore] =
+    useState<number | null>(null);
+
+  const [executionStatus, setExecutionStatus] =
+    useState<
+      "shortlisted" | "rejected" | null
+    >(null);
+
   const requestDeleteNode = useCallback(
     (node: Node) => {
       setNodeToDelete(node);
@@ -309,6 +332,76 @@ const WorkflowBuilder = () => {
       }))
     );
   }, [requestDeleteNode, setNodes]);
+
+  /*
+   * Load workflow from MongoDB when a real MongoDB
+   * workflow ID is opened.
+   */
+  useEffect(() => {
+    const isMongoWorkflowId =
+      Boolean(id) &&
+      /^[0-9a-fA-F]{24}$/.test(id);
+
+    if (!isMongoWorkflowId || !id) {
+      return;
+    }
+
+    const loadWorkflow = async () => {
+      try {
+        const response =
+          await getWorkflowById(id);
+
+        const workflow =
+          (response as any)?.data ??
+          response;
+
+        if (!workflow) {
+          return;
+        }
+
+        if (Array.isArray(workflow.nodes)) {
+          setNodes(
+            workflow.nodes.map(
+              (node: Node) => ({
+                ...node,
+                data: {
+                  ...node.data,
+                  onDelete: () =>
+                    requestDeleteNode(node),
+                },
+              })
+            )
+          );
+        }
+
+        if (Array.isArray(workflow.edges)) {
+          setEdges(workflow.edges);
+        }
+
+        if (
+          typeof workflow.name ===
+          "string" &&
+          workflow.name.trim()
+        ) {
+          setWorkflowName(
+            workflow.name
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Failed to load workflow from MongoDB:",
+          error
+        );
+      }
+    };
+
+    void loadWorkflow();
+  }, [
+    id,
+    requestDeleteNode,
+    setNodes,
+    setEdges,
+  ]);
 
   const handleConnect = useCallback(
     (connection: Connection) => {
@@ -391,6 +484,13 @@ const WorkflowBuilder = () => {
     label: string,
     description: string
   ) => {
+    let backendNodeType = type;
+
+    if (type === "score") {
+      backendNodeType =
+        "candidate-score";
+    }
+
     const nodeId = `${type}-${Date.now()}`;
 
     const newNode: Node = {
@@ -403,7 +503,16 @@ const WorkflowBuilder = () => {
       data: {
         label,
         description,
-        nodeType: type,
+        nodeType: backendNodeType,
+        ...(backendNodeType ===
+        "condition"
+          ? {
+              conditionOperator: ">=",
+              conditionValue: 70,
+              operator: ">=",
+              value: 70,
+            }
+          : {}),
         onDelete: () =>
           requestDeleteNode(newNode),
       },
@@ -433,6 +542,38 @@ const WorkflowBuilder = () => {
     nodeId: string,
     data: Record<string, unknown>
   ) => {
+    const normalizedData = {
+      ...data,
+    };
+
+    /*
+     * Keep frontend condition fields and backend
+     * condition fields synchronized.
+     */
+    if (
+      "conditionOperator" in data
+    ) {
+      normalizedData.operator =
+        data.conditionOperator;
+    }
+
+    if (
+      "conditionValue" in data
+    ) {
+      normalizedData.value =
+        data.conditionValue;
+    }
+
+    if ("operator" in data) {
+      normalizedData.conditionOperator =
+        data.operator;
+    }
+
+    if ("value" in data) {
+      normalizedData.conditionValue =
+        data.value;
+    }
+
     setNodes((currentNodes) =>
       currentNodes.map((node) =>
         node.id === nodeId
@@ -440,7 +581,7 @@ const WorkflowBuilder = () => {
               ...node,
               data: {
                 ...node.data,
-                ...data,
+                ...normalizedData,
               },
             }
           : node
@@ -454,7 +595,7 @@ const WorkflowBuilder = () => {
             ...currentNode,
             data: {
               ...currentNode.data,
-              ...data,
+              ...normalizedData,
             },
           }
         : currentNode
@@ -497,17 +638,25 @@ const WorkflowBuilder = () => {
       return "Workflow contains an invalid connection.";
     }
 
-    const connectedNodeIds = new Set<string>();
+    const connectedNodeIds =
+      new Set<string>();
 
     edges.forEach((edge) => {
-      connectedNodeIds.add(edge.source);
-      connectedNodeIds.add(edge.target);
+      connectedNodeIds.add(
+        edge.source
+      );
+      connectedNodeIds.add(
+        edge.target
+      );
     });
 
-    const disconnectedNode = nodes.find(
-      (node) =>
-        !connectedNodeIds.has(node.id)
-    );
+    const disconnectedNode =
+      nodes.find(
+        (node) =>
+          !connectedNodeIds.has(
+            node.id
+          )
+      );
 
     if (disconnectedNode) {
       return `Node "${disconnectedNode.data.label}" is not connected.`;
@@ -522,10 +671,12 @@ const WorkflowBuilder = () => {
       return "Workflow must contain a Trigger node.";
     }
 
-    const triggerHasOutput = edges.some(
-      (edge) =>
-        edge.source === triggerNode.id
-    );
+    const triggerHasOutput =
+      edges.some(
+        (edge) =>
+          edge.source ===
+          triggerNode.id
+      );
 
     if (!triggerHasOutput) {
       return "Trigger must be connected to the next workflow node.";
@@ -548,19 +699,223 @@ const WorkflowBuilder = () => {
     );
   };
 
-  const handleRunWorkflow = () => {
-    const validationError =
-      validateWorkflow();
+  const handleSaveDraft = async () => {
+    try {
+      const workflowPayload = {
+        name: workflowName.trim() || "Untitled Workflow",
+        description: "AI recruitment workflow",
+        nodes: nodes.map((node) => ({
+          id: node.id,
+          type: node.type,
+          position: node.position,
+          data: {
+            ...node.data,
+            onDelete: undefined,
+          },
+        })),
+        edges: edges.map((edge) => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          sourceHandle: edge.sourceHandle,
+          targetHandle: edge.targetHandle,
+        })),
+        status: "draft" as const,
+      };
 
-    if (validationError) {
-      window.alert(validationError);
-      return;
+      const mongoWorkflowId =
+        id && /^[0-9a-fA-F]{24}$/.test(id)
+          ? id
+          : localStorage.getItem(
+              "agentflow-current-workflow-id"
+            );
+
+      const savedWorkflow = mongoWorkflowId
+        ? await updateWorkflow(
+            mongoWorkflowId,
+            workflowPayload
+          )
+        : await createWorkflow(
+            workflowPayload
+          );
+
+      const workflow =
+        (savedWorkflow as any)?.data ??
+        savedWorkflow;
+
+      if (!workflow?._id) {
+        throw new Error(
+          "Workflow saved but no workflow ID was returned."
+        );
+      }
+
+      localStorage.setItem(
+        "agentflow-current-workflow-id",
+        workflow._id
+      );
+
+      localStorage.setItem(
+        `agentflow-workflow-draft-${id ?? "new"}`,
+        JSON.stringify({
+          workflowName,
+          nodes,
+          edges,
+          testCandidateScore,
+        } satisfies WorkflowDraft)
+      );
+
+      if (
+        !id ||
+        !/^[0-9a-fA-F]{24}$/.test(id)
+      ) {
+        window.history.replaceState(
+          {},
+          "",
+          `/workflows/${workflow._id}`
+        );
+      }
+
+      window.alert(
+        "Workflow saved successfully."
+      );
+    } catch (error) {
+      console.error(
+        "Save workflow error:",
+        error
+      );
+
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to save workflow"
+      );
     }
+  };
 
+  /*
+   * Find frontend node label from backend node ID.
+   */
+  const getNodeLabel = (
+    nodeId: string,
+    fallback: string
+  ) => {
+    const node = nodes.find(
+      (currentNode) =>
+        currentNode.id === nodeId
+    );
+
+    return (
+      node?.data?.label ||
+      fallback
+    );
+  };
+
+  const handleRunWorkflow = async () => {
+  const validationError = validateWorkflow();
+
+  if (validationError) {
+    window.alert(validationError);
+    return;
+  }
+
+  try {
     setIsRunning(true);
     setExecutionCompleted(false);
     setExecutionLog([]);
+    setExecutionSteps([]);
+    setExecutionScore(null);
+    setExecutionStatus(null);
 
+    /*
+     * Get saved MongoDB workflow ID.
+     */
+    let mongoWorkflowId =
+      id && /^[0-9a-fA-F]{24}$/.test(id)
+        ? id
+        : localStorage.getItem(
+            "agentflow-current-workflow-id"
+          );
+
+    /*
+     * If workflow has not been saved yet,
+     * automatically save it before execution.
+     */
+    if (!mongoWorkflowId) {
+      const workflowPayload = {
+        name: workflowName.trim() || "Untitled Workflow",
+        description:
+          "Automatically screen candidate resumes",
+        nodes: nodes.map((node) => ({
+          ...node,
+          data: {
+            ...node.data,
+            onDelete: undefined,
+          },
+        })),
+        edges,
+        status: "draft" as const,
+      };
+
+      const response = await createWorkflow(
+        workflowPayload
+      );
+
+      const savedWorkflow =
+        (response as any)?.data ??
+        response;
+
+      if (!savedWorkflow?._id) {
+        throw new Error(
+          "Workflow was saved but workflow ID was not returned."
+        );
+      }
+
+      mongoWorkflowId = savedWorkflow._id;
+
+      localStorage.setItem(
+        "agentflow-current-workflow-id",
+        mongoWorkflowId
+      );
+    }
+
+    /*
+     * Existing test candidate.
+     */
+    const candidateId =
+      "6aa7cdf781f2b8169b0de03d";
+
+    /*
+     * Existing Full Stack Developer job.
+     */
+    const jobId =
+      "6aac4ea42aa30b677bf286be";
+
+    /*
+     * Test resume used for automatic workflow execution.
+     */
+    const resumeText = `
+Rahul Sharma is a Full Stack Developer with 2 years of
+experience building web applications.
+
+Technical Skills:
+React.js, JavaScript, TypeScript, Node.js, Express.js,
+MongoDB, REST APIs, HTML, CSS and Git.
+
+Experience:
+Developed responsive React applications, REST APIs,
+authentication systems and database-driven applications.
+Experienced in working with Node.js, Express.js and MongoDB.
+
+Education:
+Bachelor's degree in Computer Science.
+
+The candidate has strong experience in frontend and backend
+development and has worked on full-stack web applications.
+    `.trim();
+
+    /*
+     * Reset node execution state.
+     */
     setNodes((currentNodes) =>
       currentNodes.map((node) => ({
         ...node,
@@ -571,367 +926,118 @@ const WorkflowBuilder = () => {
       }))
     );
 
-    const executionOrder: string[] = [];
-    const skippedNodeIds = new Set<string>();
-
-    let currentNodeId =
-      nodes.find(
-        (node) =>
-          node.data.nodeType ===
-          "trigger"
-      )?.id ?? null;
-
-    while (currentNodeId) {
-      executionOrder.push(
-        currentNodeId
-      );
-
-      const currentNode = nodes.find(
-        (node) =>
-          node.id === currentNodeId
-      );
-
-      if (!currentNode) {
-        break;
-      }
-
-      const outgoingEdges = edges.filter(
-        (edge) =>
-          edge.source ===
-          currentNodeId
-      );
-
-      let nextEdge:
-        | Edge
-        | undefined;
-
-      if (
-        currentNode.data.nodeType ===
-        "condition"
-      ) {
-        const candidateScore =
-          testCandidateScore;
-
-        const conditionValue =
-          Number(
-            currentNode.data
-              .conditionValue ?? 70
-          );
-
-        const operator =
-          currentNode.data
-            .conditionOperator ?? ">=";
-
-        let conditionResult =
-          false;
-
-        switch (operator) {
-          case ">=":
-            conditionResult =
-              candidateScore >=
-              conditionValue;
-            break;
-
-          case ">":
-            conditionResult =
-              candidateScore >
-              conditionValue;
-            break;
-
-          case "=":
-            conditionResult =
-              candidateScore ===
-              conditionValue;
-            break;
-
-          case "<":
-            conditionResult =
-              candidateScore <
-              conditionValue;
-            break;
-
-          case "<=":
-            conditionResult =
-              candidateScore <=
-              conditionValue;
-            break;
-        }
-
-        const selectedHandle =
-          conditionResult
-            ? "yes"
-            : "no";
-
-        const skippedHandle =
-          conditionResult
-            ? "no"
-            : "yes";
-
-        const selectedEdge =
-          outgoingEdges.find(
-            (edge) =>
-              edge.sourceHandle ===
-              selectedHandle
-          );
-
-        const skippedEdge =
-          outgoingEdges.find(
-            (edge) =>
-              edge.sourceHandle ===
-              skippedHandle
-          );
-
-        const collectSkippedBranch = (
-          startNodeId: string
-        ) => {
-          const queue = [
-            startNodeId,
-          ];
-
-          const visited =
-            new Set<string>();
-
-          while (
-            queue.length > 0
-          ) {
-            const nodeId =
-              queue.shift();
-
-            if (
-              !nodeId ||
-              visited.has(nodeId)
-            ) {
-              continue;
-            }
-
-            visited.add(nodeId);
-
-            if (
-              nodeId !==
-              currentNodeId
-            ) {
-              skippedNodeIds.add(
-                nodeId
-              );
-            }
-
-            const nextEdges =
-              edges.filter(
-                (edge) =>
-                  edge.source ===
-                  nodeId
-              );
-
-            nextEdges.forEach(
-              (edge) => {
-                if (
-                  !executionOrder.includes(
-                    edge.target
-                  )
-                ) {
-                  queue.push(
-                    edge.target
-                  );
-                }
-              }
-            );
-          }
-        };
-
-        if (skippedEdge) {
-          collectSkippedBranch(
-            skippedEdge.target
-          );
-        }
-
-        nextEdge = selectedEdge;
-      } else {
-        nextEdge =
-          outgoingEdges[0];
-      }
-
-      currentNodeId =
-        nextEdge?.target ?? null;
-    }
-
-    const executionNodes =
-      executionOrder
-        .map((nodeId) =>
-          nodes.find(
-            (node) =>
-              node.id === nodeId
-          )
-        )
-        .filter(
-          (node): node is Node =>
-            node !== undefined
-        );
-
-    const skippedNodes =
-      nodes.filter(
-        (node) =>
-          skippedNodeIds.has(
-            node.id
-          ) &&
-          !executionOrder.includes(
-            node.id
-          )
-      );
-
-    const logEntries: ExecutionLog[] =
-      [
-        ...executionNodes.map(
-          (node) => ({
-            nodeId: node.id,
-            nodeLabel:
-              node.data.label,
-            status:
-              "running" as const,
-          })
-        ),
-
-        ...skippedNodes.map(
-          (node) => ({
-            nodeId: node.id,
-            nodeLabel:
-              node.data.label,
-            status:
-              "skipped" as const,
-          })
-        ),
-      ];
-
-    setExecutionLog(
-      logEntries
-    );
-
-    executionOrder.forEach(
-      (nodeId, index) => {
-        const startTime =
-          index * 1200;
-
-        window.setTimeout(
-          () => {
-            setNodes(
-              (currentNodes) =>
-                currentNodes.map(
-                  (node) =>
-                    node.id ===
-                    nodeId
-                      ? {
-                          ...node,
-                          data: {
-                            ...node.data,
-                            executionStatus:
-                              "running",
-                          },
-                        }
-                      : node
-                )
-            );
-
-            setExecutionLog(
-              (currentLog) =>
-                currentLog.map(
-                  (log) =>
-                    log.nodeId ===
-                    nodeId
-                      ? {
-                          ...log,
-                          status:
-                            "running",
-                        }
-                      : log
-                )
-            );
-          },
-          startTime
-        );
-
-        window.setTimeout(
-          () => {
-            setNodes(
-              (currentNodes) =>
-                currentNodes.map(
-                  (node) =>
-                    node.id ===
-                    nodeId
-                      ? {
-                          ...node,
-                          data: {
-                            ...node.data,
-                            executionStatus:
-                              "completed",
-                          },
-                        }
-                      : node
-                )
-            );
-
-            setExecutionLog(
-              (currentLog) =>
-                currentLog.map(
-                  (log) =>
-                    log.nodeId ===
-                    nodeId
-                      ? {
-                          ...log,
-                          status:
-                            "completed",
-                        }
-                      : log
-                )
-            );
-          },
-          startTime + 800
-        );
-      }
-    );
-
-    window.setTimeout(
-      () => {
-        setIsRunning(false);
-        setExecutionCompleted(
-          true
-        );
-      },
-      executionOrder.length *
-        1200
-    );
-  };
-
-const handleSaveDraft = async () => {
-  try {
-    const draft: WorkflowDraft = {
-      workflowName,
-      nodes,
-      edges,
-      testCandidateScore,
-    };
-
-    localStorage.setItem(
-      `agentflow-workflow-draft-${id ?? "new"}`,
-      JSON.stringify(draft)
-    );
-
-    await createWorkflow({
-      name: workflowName,
-      description: "Recruitment automation workflow",
-      nodes,
-      edges,
-      status: "draft",
+    /*
+     * REAL BACKEND EXECUTION
+     */
+    const result = await runWorkflow({
+      workflowId: mongoWorkflowId,
+      candidateId,
+      jobId,
+      resumeText,
     });
 
-    window.alert("Draft saved successfully.");
+    const steps = result.steps || [];
+
+    /*
+     * Store execution result.
+     */
+    setExecutionSteps(steps);
+
+    setExecutionScore(
+      result.matchScore ?? null
+    );
+
+    setExecutionStatus(
+      result.finalStatus
+    );
+
+    /*
+     * Convert backend execution
+     * into frontend execution log.
+     */
+    const backendLogs: ExecutionLog[] =
+      steps.map((step) => ({
+        nodeId: step.nodeId,
+        nodeLabel: getNodeLabel(
+          step.nodeId,
+          step.nodeType
+        ),
+        status:
+          step.status === "completed"
+            ? "completed"
+            : "skipped",
+      }));
+
+    setExecutionLog(backendLogs);
+
+    /*
+     * Update workflow nodes visually.
+     */
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        const step = steps.find(
+          (item) =>
+            item.nodeId === node.id
+        );
+
+        if (!step) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              executionStatus: "skipped",
+            },
+          };
+        }
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            executionStatus:
+              step.status,
+          },
+        };
+      })
+    );
+
+    setExecutionCompleted(true);
+
+    /*
+     * Show final result.
+     */
+    window.alert(
+      `Workflow completed successfully.\n\n` +
+      `Candidate Status: ${result.finalStatus}\n` +
+      `AI Match Score: ${result.matchScore}%`
+    );
   } catch (error) {
-    console.error("Failed to save workflow:", error);
-    window.alert("Failed to save workflow to backend.");
+    console.error(
+      "Workflow execution error:",
+      error
+    );
+
+    setExecutionCompleted(false);
+
+    window.alert(
+      error instanceof Error
+        ? error.message
+        : "Workflow execution failed"
+    );
+  } finally {
+    setIsRunning(false);
   }
 };
+
+  /*
+   * Restore local draft.
+   */
   useEffect(() => {
     const savedDraft =
       localStorage.getItem(
-        `agentflow-workflow-draft-${id ?? "new"}`
+        `agentflow-workflow-draft-${
+          id ?? "new"
+        }`
       );
 
     if (!savedDraft) {
@@ -1017,8 +1123,12 @@ const handleSaveDraft = async () => {
       <div className="workflow-builder-header">
         <div className="workflow-header-left">
           <div className="workflow-breadcrumb">
-            <span>Workflows</span>
+            <span>
+              Workflows
+            </span>
+
             <span>/</span>
+
             <span className="text-dark">
               Builder
             </span>
@@ -1053,7 +1163,9 @@ const handleSaveDraft = async () => {
           <button
             type="button"
             className="workflow-action-btn"
-            onClick={handleSaveDraft}
+            onClick={
+              handleSaveDraft
+            }
           >
             <span>↓</span>
             Save
@@ -1146,9 +1258,62 @@ const handleSaveDraft = async () => {
         </div>
       </div>
 
+      {/* REAL EXECUTION SUMMARY */}
+
+      {executionCompleted && (
+        <div className="container-fluid mt-3">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body">
+              <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                  <div className="small text-secondary">
+                    AI Match Score
+                  </div>
+
+                  <h3 className="mb-0">
+                    {executionScore ?? 0}%
+                  </h3>
+                </div>
+
+                <div>
+                  <div className="small text-secondary">
+                    Final Status
+                  </div>
+
+                  <span
+                    className={`badge ${
+                      executionStatus ===
+                      "shortlisted"
+                        ? "text-bg-success"
+                        : "text-bg-danger"
+                    }`}
+                  >
+                    {
+                      executionStatus
+                    }
+                  </span>
+                </div>
+
+                <div>
+                  <div className="small text-secondary">
+                    Executed Steps
+                  </div>
+
+                  <h5 className="mb-0">
+                    {
+                      executionSteps.length
+                    }
+                  </h5>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* BUILDER */}
 
-      <div className="row g-3">
+      <div className="row g-3 mt-1">
         {showNodePanel && (
           <div className="col-12 col-xl-3">
             <NodePanel
@@ -1198,8 +1363,8 @@ const handleSaveDraft = async () => {
                   </h5>
 
                   <p className="text-secondary small mb-0">
-                    Workflow execution
-                    history
+                    Real workflow execution
+                    details
                   </p>
                 </div>
 
@@ -1251,6 +1416,22 @@ const handleSaveDraft = async () => {
                       </span>
                     </div>
                   </div>
+
+                  {executionScore !==
+                    null && (
+                    <div className="text-end">
+                      <div className="small text-secondary">
+                        AI Score
+                      </div>
+
+                      <strong>
+                        {
+                          executionScore
+                        }
+                        %
+                      </strong>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1264,11 +1445,9 @@ const handleSaveDraft = async () => {
               ) : (
                 <div className="execution-log-list">
                   {executionLog.map(
-                    (log) => (
+                    (log, index) => (
                       <div
-                        key={
-                          log.nodeId
-                        }
+                        key={`${log.nodeId}-${index}`}
                         className={`execution-log-item execution-${log.status}`}
                       >
                         <div className="execution-status-icon">
@@ -1309,6 +1488,63 @@ const handleSaveDraft = async () => {
                       </div>
                     )
                   )}
+                </div>
+              )}
+
+              {/* DETAILED BACKEND STEPS */}
+
+              {executionSteps.length >
+                0 && (
+                <div className="mt-4">
+                  <div className="small fw-semibold mb-2">
+                    Backend Execution Details
+                  </div>
+
+                  <div className="list-group list-group-flush">
+                    {executionSteps.map(
+                      (
+                        step,
+                        index
+                      ) => (
+                        <div
+                          key={`${step.nodeId}-${index}`}
+                          className="list-group-item px-0"
+                        >
+                          <div className="d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                              <div className="fw-semibold">
+                                {
+                                  step.nodeType
+                                }
+                              </div>
+
+                              <div className="small text-secondary">
+                                {
+                                  step.message
+                                }
+                              </div>
+                            </div>
+
+                            <span
+                              className={`badge ${
+                                step.status ===
+                                "completed"
+                                  ? "text-bg-success"
+                                  : step.status ===
+                                      "failed"
+                                    ? "text-bg-danger"
+                                    : "text-bg-secondary"
+                              }`}
+                            >
+                              {
+                                step.status
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
               )}
             </div>

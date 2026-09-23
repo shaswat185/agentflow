@@ -17,35 +17,31 @@ const authMiddleware = (
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     res.status(401).json({
-      success: false,
       message: "Access token is required",
     });
     return;
   }
 
   const token = authHeader.split(" ")[1];
-  const jwtSecret = process.env.JWT_SECRET;
-
-  if (!jwtSecret) {
-    res.status(500).json({
-      success: false,
-      message: "JWT_SECRET is missing",
-    });
-    return;
-  }
 
   try {
-    const decoded = jwt.verify(token, jwtSecret) as {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as {
       userId: string;
       role: string;
     };
 
-    req.user = decoded;
+    req.user = {
+      userId: decoded.userId,
+      role: decoded.role,
+    };
+
     next();
   } catch {
     res.status(401).json({
-      success: false,
-      message: "Invalid or expired token",
+      message: "Invalid or expired access token",
     });
   }
 };

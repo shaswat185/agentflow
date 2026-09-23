@@ -1,21 +1,80 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const Login = () => {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-    if (!email || !password) {
-      return;
+  const handleSubmit = async (event: React.FormEvent) => {
+  event.preventDefault();
+
+  setError("");
+
+  if (!email || !password) {
+    setError("Email and password are required.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
+
+    const data = await response.json();
+
+
+    if (!response.ok) {
+      throw new Error(data.message || "Login failed");
     }
 
+    const token = data.data?.token;
+
+    if (!token) {
+      throw new Error("Token was not received from server.");
+    }
+
+    localStorage.setItem("token", token);
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        id: data.data.id,
+        name: data.data.name,
+        email: data.data.email,
+        role: data.data.role,
+      })
+    );
+
+
     navigate("/dashboard");
-  };
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Something went wrong during login.";
+
+    setError(message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light p-4">
@@ -26,6 +85,7 @@ const Login = () => {
         <div className="card-body p-4 p-md-5">
           <div className="text-center mb-4">
             <h3 className="fw-bold mb-1">AgentFlow</h3>
+
             <p className="text-muted mb-0">
               AI Recruitment Automation
             </p>
@@ -36,6 +96,12 @@ const Login = () => {
           <p className="text-muted small mb-4">
             Sign in to your AgentFlow workspace.
           </p>
+
+          {error && (
+            <div className="alert alert-danger py-2" role="alert">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
@@ -51,6 +117,7 @@ const Login = () => {
                 onChange={(event) =>
                   setEmail(event.target.value)
                 }
+                disabled={loading}
               />
             </div>
 
@@ -67,14 +134,16 @@ const Login = () => {
                 onChange={(event) =>
                   setPassword(event.target.value)
                 }
+                disabled={loading}
               />
             </div>
 
             <button
               type="submit"
               className="btn btn-primary w-100"
+              disabled={loading}
             >
-              Sign In
+              {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 

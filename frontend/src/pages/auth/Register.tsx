@@ -1,6 +1,9 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const Register = () => {
   const navigate = useNavigate();
 
@@ -8,14 +11,60 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
+    setError("");
+    setSuccess("");
+
     if (!name || !email || !password) {
+      setError("Name, email and password are required.");
       return;
     }
 
-    navigate("/dashboard");
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Registration failed"
+        );
+      }
+
+      setSuccess("Account created successfully. Redirecting to login...");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1000);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong during registration.";
+
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -39,6 +88,18 @@ const Register = () => {
             Start building AI-powered recruitment workflows.
           </p>
 
+          {error && (
+            <div className="alert alert-danger py-2">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="alert alert-success py-2">
+              {success}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
               <label className="form-label">
@@ -53,6 +114,7 @@ const Register = () => {
                 onChange={(event) =>
                   setName(event.target.value)
                 }
+                disabled={loading}
               />
             </div>
 
@@ -69,6 +131,7 @@ const Register = () => {
                 onChange={(event) =>
                   setEmail(event.target.value)
                 }
+                disabled={loading}
               />
             </div>
 
@@ -85,14 +148,16 @@ const Register = () => {
                 onChange={(event) =>
                   setPassword(event.target.value)
                 }
+                disabled={loading}
               />
             </div>
 
             <button
               type="submit"
               className="btn btn-primary w-100"
+              disabled={loading}
             >
-              Create Account
+              {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
 

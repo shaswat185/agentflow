@@ -12,6 +12,8 @@ import Settings from "../pages/Settings";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import Home from "../pages/Home";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
+
 
 const AppRoutes = () => {
     return (
@@ -19,37 +21,39 @@ const AppRoutes = () => {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route element={<DashboardLayout />}>
-                <Route
-                    path="/dashboard"
-                    element={<Dashboard />}
-                />
 
-                <Route
-                    path="/workflows"
-                    element={<Workflows />}
-                />
+            <Route element={<ProtectedRoute />}>
+                <Route element={<DashboardLayout />}>
+                    <Route
+                        path="/dashboard"
+                        element={<Dashboard />}
+                    />
 
-                <Route
-                    path="/workflows/new"
-                    element={<WorkflowBuilder />}
-                />
+                    <Route
+                        path="/workflows"
+                        element={<Workflows />}
+                    />
 
-                <Route path="/workflows/:id" element={<WorkflowBuilder />} />
-                
+                    <Route
+                        path="/workflows/new"
+                        element={<WorkflowBuilder />}
+                    />
 
-                <Route path="/executions" element={<Executions />} />
-                <Route path="/templates" element={<Templates />} />
-                <Route path="/jobs" element={<Jobs />} />
-                <Route path="/candidates" element={<Candidates />} />
-                <Route
-                    path="/integrations"
-                    element={<Integrations />}
-                />
-                <Route path="/settings" element={<Settings />} />
+                    <Route path="/workflows/:id" element={<WorkflowBuilder />} />
 
+
+                    <Route path="/executions" element={<Executions />} />
+                    <Route path="/templates" element={<Templates />} />
+                    <Route path="/jobs" element={<Jobs />} />
+                    <Route path="/candidates" element={<Candidates />} />
+                    <Route
+                        path="/integrations"
+                        element={<Integrations />}
+                    />
+                    <Route path="/settings" element={<Settings />} />
+
+                </Route>
             </Route>
-
             <Route
                 path="*"
                 element={<Navigate to="/dashboard" replace />}
