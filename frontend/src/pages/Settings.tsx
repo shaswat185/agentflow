@@ -27,31 +27,28 @@ const defaultSettings: SettingsData = {
 };
 
 const Settings = () => {
-  const [settings, setSettings] =
-    useState<SettingsData>(defaultSettings);
+  const [settings, setSettings] = useState<SettingsData>(() => {
+    const savedSettings = localStorage.getItem(STORAGE_KEY);
 
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    const savedSettings =
-      localStorage.getItem(STORAGE_KEY);
-
-    if (!savedSettings) return;
+    if (!savedSettings) return defaultSettings;
 
     try {
       const parsed = JSON.parse(savedSettings);
 
-      setSettings({
+      return {
         ...defaultSettings,
         ...parsed,
-      });
+      };
     } catch (error) {
       console.error(
         "Failed to load settings:",
         error
       );
+      return defaultSettings;
     }
-  }, []);
+  });
+
+  const [saved, setSaved] = useState(false);
 
   const updateSetting = <K extends keyof SettingsData>(
     key: K,

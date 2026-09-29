@@ -51,27 +51,16 @@ const initialIntegrations: Integration[] = [
 ];
 
 const Integrations = () => {
-  const [integrations, setIntegrations] =
-    useState<Integration[]>(initialIntegrations);
+  const [integrations, setIntegrations] = useState<Integration[]>(() => {
+    const savedIntegrations = localStorage.getItem(STORAGE_KEY);
 
-  const [categoryFilter, setCategoryFilter] = useState("All");
-
-  const [selectedIntegration, setSelectedIntegration] =
-    useState<Integration | null>(null);
-
-  const [apiKey, setApiKey] = useState("");
-
-  useEffect(() => {
-    const savedIntegrations =
-      localStorage.getItem(STORAGE_KEY);
-
-    if (!savedIntegrations) return;
+    if (!savedIntegrations) return initialIntegrations;
 
     try {
       const parsed = JSON.parse(savedIntegrations);
 
       if (Array.isArray(parsed)) {
-        setIntegrations(parsed);
+        return parsed;
       }
     } catch (error) {
       console.error(
@@ -79,7 +68,16 @@ const Integrations = () => {
         error
       );
     }
-  }, []);
+
+    return initialIntegrations;
+  });
+
+  const [categoryFilter, setCategoryFilter] = useState("All");
+
+  const [selectedIntegration, setSelectedIntegration] =
+    useState<Integration | null>(null);
+
+  const [apiKey, setApiKey] = useState("");
 
   useEffect(() => {
     localStorage.setItem(

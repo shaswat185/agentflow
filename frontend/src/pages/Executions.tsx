@@ -174,8 +174,23 @@ const initialExecutions: Execution[] = [
 ];
 
 const Executions = () => {
-  const [executions, setExecutions] =
-    useState<Execution[]>(initialExecutions);
+  const [executions, setExecutions] = useState<Execution[]>(() => {
+    const savedExecutions = localStorage.getItem(STORAGE_KEY);
+
+    if (!savedExecutions) return initialExecutions;
+
+    try {
+      const parsed = JSON.parse(savedExecutions);
+
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch (error) {
+      console.error("Failed to load executions:", error);
+    }
+
+    return initialExecutions;
+  });
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -183,22 +198,6 @@ const Executions = () => {
 
   const [selectedExecution, setSelectedExecution] =
     useState<Execution | null>(null);
-
-  useEffect(() => {
-    const savedExecutions = localStorage.getItem(STORAGE_KEY);
-
-    if (!savedExecutions) return;
-
-    try {
-      const parsed = JSON.parse(savedExecutions);
-
-      if (Array.isArray(parsed)) {
-        setExecutions(parsed);
-      }
-    } catch (error) {
-      console.error("Failed to load executions:", error);
-    }
-  }, []);
 
   useEffect(() => {
     localStorage.setItem(

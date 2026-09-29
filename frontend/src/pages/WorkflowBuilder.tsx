@@ -30,6 +30,9 @@ import {
   type ExecutionStep,
 } from "../services/workflowExecutionService";
 
+import { getCandidates } from "../services/candidateService";
+import { getJobs } from "../services/jobService";
+
 const initialNodes: Node[] = [
   {
     id: "trigger",
@@ -339,8 +342,7 @@ const WorkflowBuilder = () => {
    */
   useEffect(() => {
     const isMongoWorkflowId =
-      Boolean(id) &&
-      /^[0-9a-fA-F]{24}$/.test(id);
+      Boolean(id && /^[0-9a-fA-F]{24}$/.test(id));
 
     if (!isMongoWorkflowId || !id) {
       return;
@@ -351,9 +353,7 @@ const WorkflowBuilder = () => {
         const response =
           await getWorkflowById(id);
 
-        const workflow =
-          (response as any)?.data ??
-          response;
+        const workflow = response;
 
         if (!workflow) {
           return;
@@ -361,7 +361,7 @@ const WorkflowBuilder = () => {
 
         if (Array.isArray(workflow.nodes)) {
           setNodes(
-            workflow.nodes.map(
+            (workflow.nodes as Node[]).map(
               (node: Node) => ({
                 ...node,
                 data: {
@@ -375,7 +375,7 @@ const WorkflowBuilder = () => {
         }
 
         if (Array.isArray(workflow.edges)) {
-          setEdges(workflow.edges);
+          setEdges(workflow.edges as Edge[]);
         }
 
         if (
@@ -739,9 +739,7 @@ const WorkflowBuilder = () => {
             workflowPayload
           );
 
-      const workflow =
-        (savedWorkflow as any)?.data ??
-        savedWorkflow;
+      const workflow = savedWorkflow;
 
       if (!workflow?._id) {
         throw new Error(
@@ -860,9 +858,7 @@ const WorkflowBuilder = () => {
         workflowPayload
       );
 
-      const savedWorkflow =
-        (response as any)?.data ??
-        response;
+      const savedWorkflow = response;
 
       if (!savedWorkflow?._id) {
         throw new Error(
@@ -878,17 +874,40 @@ const WorkflowBuilder = () => {
       );
     }
 
+    if (!mongoWorkflowId) {
+      throw new Error(
+        "Workflow ID is missing"
+      );
+    }
+
     /*
-     * Existing test candidate.
+     * Existing test candidate or first real candidate from DB.
      */
-    const candidateId =
+    let candidateId =
       "6aa7cdf781f2b8169b0de03d";
 
     /*
-     * Existing Full Stack Developer job.
+     * Existing Full Stack Developer job or first real job from DB.
      */
-    const jobId =
+    let jobId =
       "6aac4ea42aa30b677bf286be";
+
+    try {
+      const [candidatesList, jobsList] = await Promise.all([
+        getCandidates(),
+        getJobs(),
+      ]);
+
+      if (candidatesList.length > 0) {
+        candidateId = candidatesList[0]._id;
+      }
+
+      if (jobsList.length > 0) {
+        jobId = jobsList[0]._id;
+      }
+    } catch {
+      // Fall back to default IDs if fetching fails
+    }
 
     /*
      * Test resume used for automatic workflow execution.
@@ -1044,71 +1063,73 @@ development and has worked on full-stack web applications.
       return;
     }
 
-    try {
-      const parsedDraft =
-        JSON.parse(
-          savedDraft
-        ) as WorkflowDraft;
+    queueMicrotask(() => {
+      try {
+        const parsedDraft =
+          JSON.parse(
+            savedDraft
+          ) as WorkflowDraft;
 
-      if (
-        Array.isArray(
-          parsedDraft.nodes
-        )
-      ) {
-        setNodes(
-          parsedDraft.nodes.map(
-            (node: Node) => ({
-              ...node,
-              data: {
-                ...node.data,
-                onDelete: () =>
-                  requestDeleteNode(
-                    node
-                  ),
-              },
-            })
+        if (
+          Array.isArray(
+            parsedDraft.nodes
           )
-        );
-      }
+        ) {
+          setNodes(
+            parsedDraft.nodes.map(
+              (node: Node) => ({
+                ...node,
+                data: {
+                  ...node.data,
+                  onDelete: () =>
+                    requestDeleteNode(
+                      node
+                    ),
+                },
+              })
+            )
+          );
+        }
 
-      if (
-        Array.isArray(
-          parsedDraft.edges
-        )
-      ) {
-        setEdges(
-          parsedDraft.edges
-        );
-      }
+        if (
+          Array.isArray(
+            parsedDraft.edges
+          )
+        ) {
+          setEdges(
+            parsedDraft.edges
+          );
+        }
 
-      if (
-        typeof parsedDraft.workflowName ===
-          "string" &&
-        parsedDraft.workflowName.trim()
-      ) {
-        setWorkflowName(
-          parsedDraft.workflowName
-        );
-      }
+        if (
+          typeof parsedDraft.workflowName ===
+            "string" &&
+          parsedDraft.workflowName.trim()
+        ) {
+          setWorkflowName(
+            parsedDraft.workflowName
+          );
+        }
 
-      if (
-        typeof parsedDraft.testCandidateScore ===
-          "number" &&
-        parsedDraft.testCandidateScore >=
-          0 &&
-        parsedDraft.testCandidateScore <=
-          100
-      ) {
-        setTestCandidateScore(
-          parsedDraft.testCandidateScore
+        if (
+          typeof parsedDraft.testCandidateScore ===
+            "number" &&
+          parsedDraft.testCandidateScore >=
+            0 &&
+          parsedDraft.testCandidateScore <=
+            100
+        ) {
+          setTestCandidateScore(
+            parsedDraft.testCandidateScore
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Failed to load workflow draft:",
+          error
         );
       }
-    } catch (error) {
-      console.error(
-        "Failed to load workflow draft:",
-        error
-      );
-    }
+    });
   }, [
     id,
     requestDeleteNode,

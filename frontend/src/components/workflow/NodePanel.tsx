@@ -16,78 +16,78 @@ type WorkflowNodeOption = {
   icon: string;
 };
 
+const availableNodes: WorkflowNodeOption[] = [
+  {
+    type: "trigger",
+    label: "Trigger",
+    description: "Start the workflow",
+    category: "Triggers",
+    icon: "⚡",
+  },
+  {
+    type: "resume-parser",
+    label: "Resume Parser",
+    description: "Extract candidate information",
+    category: "AI Agents",
+    icon: "✦",
+  },
+  {
+    type: "job-matching",
+    label: "Job Matching",
+    description: "Match candidate with job",
+    category: "AI Agents",
+    icon: "⌁",
+  },
+  {
+    type: "score",
+    label: "Candidate Score",
+    description: "Calculate candidate score",
+    category: "AI Agents",
+    icon: "◈",
+  },
+  {
+    type: "condition",
+    label: "Condition",
+    description: "Check a condition",
+    category: "Logic",
+    icon: "◇",
+  },
+  {
+    type: "shortlist",
+    label: "Shortlist",
+    description: "Move qualified candidate forward",
+    category: "Actions",
+    icon: "✓",
+  },
+  {
+    type: "reject",
+    label: "Reject",
+    description: "Reject candidate from process",
+    category: "Actions",
+    icon: "×",
+  },
+  {
+    type: "email",
+    label: "Send Email",
+    description: "Send an email",
+    category: "Communication",
+    icon: "✉",
+  },
+];
+
 const NodePanel = ({
   onAddNode,
 }: NodePanelProps) => {
   const [search, setSearch] = useState("");
 
-  const nodes: WorkflowNodeOption[] = [
-    {
-      type: "trigger",
-      label: "Trigger",
-      description: "Start the workflow",
-      category: "Triggers",
-      icon: "⚡",
-    },
-    {
-      type: "resume-parser",
-      label: "Resume Parser",
-      description: "Extract candidate information",
-      category: "AI Agents",
-      icon: "✦",
-    },
-    {
-      type: "job-matching",
-      label: "Job Matching",
-      description: "Match candidate with job",
-      category: "AI Agents",
-      icon: "⌁",
-    },
-    {
-      type: "score",
-      label: "Candidate Score",
-      description: "Calculate candidate score",
-      category: "AI Agents",
-      icon: "◈",
-    },
-    {
-      type: "condition",
-      label: "Condition",
-      description: "Check a condition",
-      category: "Logic",
-      icon: "◇",
-    },
-    {
-      type: "shortlist",
-      label: "Shortlist",
-      description: "Move qualified candidate forward",
-      category: "Actions",
-      icon: "✓",
-    },
-    {
-      type: "reject",
-      label: "Reject",
-      description: "Reject candidate from process",
-      category: "Actions",
-      icon: "×",
-    },
-    {
-      type: "email",
-      label: "Send Email",
-      description: "Send an email",
-      category: "Communication",
-      icon: "✉",
-    },
-  ];
-
   const filteredNodes = useMemo(() => {
     const query = search.toLowerCase().trim();
 
     if (!query) {
-      return nodes;
+      return availableNodes;
     }
 
-    return nodes.filter(
+    return availableNodes.filter(
       (node) =>
         node.label.toLowerCase().includes(query) ||
         node.description.toLowerCase().includes(query) ||

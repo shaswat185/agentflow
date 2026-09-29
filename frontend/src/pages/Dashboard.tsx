@@ -29,37 +29,38 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadDashboard = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const [
-        workflowData,
-        jobData,
-        candidateData,
-      ] = await Promise.all([
-        getWorkflows(),
-        getJobs(),
-        getCandidates(),
-      ]);
-
-      setWorkflows(workflowData);
-      setJobs(jobData);
-      setCandidates(candidateData);
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to load dashboard"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadDashboard();
+    let isMounted = true;
+    Promise.all([
+      getWorkflows(),
+      getJobs(),
+      getCandidates(),
+    ])
+      .then(([workflowData, jobData, candidateData]) => {
+        if (isMounted) {
+          setWorkflows(workflowData);
+          setJobs(jobData);
+          setCandidates(candidateData);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load dashboard"
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const activeWorkflows = useMemo(

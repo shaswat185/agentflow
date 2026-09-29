@@ -21,10 +21,6 @@ type DisplayStatus =
   | "Interview"
   | "Rejected";
 
-type Candidate = ApiCandidate & {
-  displayStatus: DisplayStatus;
-};
-
 const Candidates = () => {
   const [candidates, setCandidates] = useState<
     ApiCandidate[]
@@ -61,32 +57,33 @@ const Candidates = () => {
     skills: "",
   });
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const [candidateData, jobData] =
-        await Promise.all([
-          getCandidates(),
-          getJobs(),
-        ]);
-
-      setCandidates(candidateData);
-      setJobs(jobData);
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to load candidates"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+    Promise.all([getCandidates(), getJobs()])
+      .then(([candidateData, jobData]) => {
+        if (isMounted) {
+          setCandidates(candidateData);
+          setJobs(jobData);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load candidates"
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const getDisplayStatus = (

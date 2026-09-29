@@ -35,27 +35,32 @@ const Jobs = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const loadJobs = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const data = await getJobs();
-
-      setJobs(data);
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to load jobs"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadJobs();
+    let isMounted = true;
+    getJobs()
+      .then((data) => {
+        if (isMounted) {
+          setJobs(data);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load jobs"
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleChange = (
